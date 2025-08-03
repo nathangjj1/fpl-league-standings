@@ -242,15 +242,18 @@
             console.log('FPL League page loaded');
             
             try {
-                // Use our Express server proxy
-                const proxyUrl = `/api/fpl-proxy?leagueId=${leagueId}`;
+                // Use cors-anywhere temporarily while we test Netlify function
+                const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+                const fplUrl = `https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`;
+                const fullUrl = proxyUrl + fplUrl;
                 
-                console.log('Fetching from:', proxyUrl);
+                console.log('Fetching from:', fullUrl);
                 
-                const response = await fetch(proxyUrl, {
+                const response = await fetch(fullUrl, {
                     method: 'GET',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Origin': window.location.origin,
+                        'X-Requested-With': 'XMLHttpRequest'
                     }
                 });
                 console.log('Response status:', response.status);

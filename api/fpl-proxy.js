@@ -29,11 +29,11 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // Fetch data from FPL API using native https module
+        // Fetch data from FPL API
         const fplUrl = `https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`;
         
         const data = await new Promise((resolve, reject) => {
-            https.get(fplUrl, (res) => {
+            const req = https.get(fplUrl, (res) => {
                 let data = '';
                 
                 res.on('data', (chunk) => {
@@ -48,9 +48,13 @@ exports.handler = async (event, context) => {
                         reject(new Error('Invalid JSON response'));
                     }
                 });
-            }).on('error', (error) => {
+            });
+            
+            req.on('error', (error) => {
                 reject(error);
             });
+            
+            req.end();
         });
 
         return {
