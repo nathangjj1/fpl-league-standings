@@ -355,41 +355,61 @@
             console.log('FPL League page loaded');
             
             try {
-                // Use a reliable public CORS proxy for production
-                const proxyUrl = 'https://api.allorigins.win/raw?url=';
+                // Try multiple CORS proxies as fallbacks
+                const proxies = [
+                    'https://cors-anywhere.herokuapp.com/',
+                    'https://api.allorigins.win/raw?url=',
+                    'https://corsproxy.io/?',
+                    'https://thingproxy.freeboard.io/fetch/'
+                ];
+                
                 const fplUrl = `https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`;
-                const fullUrl = proxyUrl + encodeURIComponent(fplUrl);
+                let lastError = null;
                 
-                console.log('Fetching from:', fullUrl);
-                
-                const response = await fetch(fullUrl, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json'
+                for (const proxy of proxies) {
+                    try {
+                        const fullUrl = proxy + encodeURIComponent(fplUrl);
+                        console.log('Trying proxy:', proxy);
+                        console.log('Fetching from:', fullUrl);
+                        
+                        const response = await fetch(fullUrl, {
+                            method: 'GET',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        console.log('Response status:', response.status);
+                        
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            console.log('Response error text:', errorText);
+                            throw new Error(`HTTP error! status: ${response.status}: ${errorText}`);
+                        }
+                        
+                        const data = await response.json();
+                        console.log('Received data:', data);
+                        
+                        // Check if the API returned an error
+                        if (data.error) {
+                            throw new Error(data.error);
+                        }
+                        
+                        return data;
+                        
+                    } catch (error) {
+                        console.log(`Proxy ${proxy} failed:`, error.message);
+                        lastError = error;
+                        continue; // Try next proxy
                     }
-                });
-                console.log('Response status:', response.status);
-                console.log('Response headers:', response.headers);
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.log('Response error text:', errorText);
-                    throw new Error(`HTTP error! status: ${response.status}: ${errorText}`);
                 }
                 
-                const data = await response.json();
-                console.log('Received data:', data);
-                
-                // Check if the API returned an error
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-                
-                return data;
+                // If all proxies failed, throw the last error
+                throw lastError || new Error('All CORS proxies failed');
                 
             } catch (error) {
                 console.log('Error fetching league data:', error);
-                throw error; // Re-throw the error instead of returning mock data
+                throw error;
             }
         }
 
