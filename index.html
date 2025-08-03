@@ -177,6 +177,7 @@
                 font-size: 12px;
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
+                align-items: center;
             }
 
             .leaderboard-row {
@@ -199,6 +200,7 @@
 
             .player-info {
                 display: block;
+                text-align: left;
             }
 
             .player-name {
@@ -219,7 +221,7 @@
                 font-size: 16px;
                 font-weight: 700;
                 color: #28a745;
-                text-align: center;
+                text-align: left;
             }
 
             .stats {
@@ -804,7 +806,7 @@
             headerRow.innerHTML = `
                 <div class="position">Pos</div>
                 <div class="player-info">Team</div>
-                <div class="total-points">Points</div>
+                <div class="total-points" style="text-align: left;">Points</div>
                 <div class="stats">
                     <div class="stat-item">
                         <div class="stat-label">GW</div>
