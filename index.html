@@ -119,12 +119,55 @@
 
         .loading-text {
             display: inline-block;
-            animation: pulse 2s ease-in-out infinite;
+            animation: loadingAnimation 3s ease-in-out infinite;
+            background: linear-gradient(45deg, #007bff, #28a745, #ffc107, #dc3545);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 600;
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
+        @keyframes loadingAnimation {
+            0% { 
+                opacity: 1;
+                background-position: 0% 50%;
+                transform: scale(1);
+            }
+            25% { 
+                opacity: 0.8;
+                background-position: 25% 50%;
+                transform: scale(1.05);
+            }
+            50% { 
+                opacity: 1;
+                background-position: 50% 50%;
+                transform: scale(1);
+            }
+            75% { 
+                opacity: 0.8;
+                background-position: 75% 50%;
+                transform: scale(1.05);
+            }
+            100% { 
+                opacity: 1;
+                background-position: 100% 50%;
+                transform: scale(1);
+            }
+        }
+
+        .loading-subtitle {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #6c757d;
+            font-style: italic;
+            opacity: 0.8;
+            animation: subtitleFade 2s ease-in-out infinite;
+        }
+
+        @keyframes subtitleFade {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
         }
 
         .error {
@@ -707,7 +750,8 @@
         
         <div class="content">
             <div id="loading" class="loading" style="display: none;">
-                <span class="loading-text">Loading league data...</span>
+                <span class="loading-text">Loading Live League data... Just a sec...</span>
+                <div class="loading-subtitle">Top Secret Pull data from Premier League Script is © 2025 Nathan Jobson ;)</div>
             </div>
 
             <div id="error" class="error" style="display: none;">
@@ -715,7 +759,7 @@
             </div>
 
             <div id="leaderboard" class="leaderboard" style="display: none;">
-                <h2>🏆 Ruxley FPL Leaderboard</h2>
+                <h2>🏆 Ruxley FPL Leaderboard 2025/26</h2>
                 <div id="leaderboard-content"></div>
                 <div class="last-updated" id="lastUpdated"></div>
                 <div class="auto-refresh">Auto-refreshing every 5 minutes</div>
