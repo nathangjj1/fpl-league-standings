@@ -166,18 +166,7 @@
         /* Mobile leaderboard layout */
         @media (max-width: 768px) {
             .leaderboard-header {
-                display: grid;
-                grid-template-columns: 40px 1fr 60px 1fr;
-                gap: 8px;
-                padding: 12px 15px;
-                background: #f8f9fa;
-                border-bottom: 1px solid #e9ecef;
-                font-weight: 600;
-                color: #6c757d;
-                font-size: 12px;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-                align-items: center;
+                display: none; /* Hide header on mobile */
             }
 
             .leaderboard-row {
@@ -800,29 +789,31 @@
 
 
 
-            // Display header
-            const headerRow = document.createElement('div');
-            headerRow.className = 'leaderboard-header';
-            headerRow.innerHTML = `
-                <div class="position">Pos</div>
-                <div class="player-info">Team</div>
-                <div class="total-points" style="text-align: left;">Points</div>
-                <div class="stats">
-                    <div class="stat-item">
-                        <div class="stat-label">GW</div>
-                        <div class="stat-value">Gameweek</div>
+            // Display header (only on desktop)
+            if (window.innerWidth > 768) {
+                const headerRow = document.createElement('div');
+                headerRow.className = 'leaderboard-header';
+                headerRow.innerHTML = `
+                    <div class="position">Pos</div>
+                    <div class="player-info">Team</div>
+                    <div class="total-points" style="text-align: left;">Points</div>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <div class="stat-label">GW</div>
+                            <div class="stat-value">Gameweek</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">CH</div>
+                            <div class="stat-value">Chips</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">TR</div>
+                            <div class="stat-value">Transfers</div>
+                        </div>
                     </div>
-                    <div class="stat-item">
-                        <div class="stat-label">CH</div>
-                        <div class="stat-value">Chips</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">TR</div>
-                        <div class="stat-value">Transfers</div>
-                    </div>
-                </div>
-            `;
-            leaderboardContent.appendChild(headerRow);
+                `;
+                leaderboardContent.appendChild(headerRow);
+            }
 
             results.forEach((player, index) => {
                 console.log('Processing player:', player);
