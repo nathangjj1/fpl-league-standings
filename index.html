@@ -12,7 +12,6 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#007bff">
     <meta name="msapplication-TileColor" content="#007bff">
-    <meta name="msapplication-TileImage" content="icon-144x144.png">
     
     <!-- App Icons -->
     <link rel="icon" type="image/x-icon" href="favicons/favicon.ico">
@@ -44,6 +43,7 @@
             max-width: 100%;
             height: auto;
             margin: 0;
+            loading: lazy;
         }
 
         .content {
@@ -637,7 +637,7 @@
 </head>
 <body>
     <div class="container">
-        <img src="header.png" alt="FPL League Header" class="header-image">
+        <img src="header.png" alt="Ruxley FPL League Header" class="header-image">
         
         <div class="content">
             <h1>Ruxley FPL League</h1>
@@ -709,12 +709,18 @@
                         console.log('Trying proxy:', proxy);
                         console.log('Fetching from:', fullUrl);
                         
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+                        
                         const response = await fetch(fullUrl, {
                             method: 'GET',
                             headers: {
                                 'Content-Type': 'application/json'
-                            }
+                            },
+                            signal: controller.signal
                         });
+                        
+                        clearTimeout(timeoutId);
                         
                         console.log('Response status:', response.status);
                         
@@ -736,13 +742,16 @@
                         
                     } catch (error) {
                         console.log(`Proxy ${proxy} failed:`, error.message);
+                        if (error.name === 'AbortError') {
+                            console.log(`Proxy ${proxy} timed out`);
+                        }
                         lastError = error;
                         continue; // Try next proxy
                     }
                 }
                 
                 // If all proxies failed, throw the last error
-                throw lastError || new Error('All CORS proxies failed');
+                throw lastError || new Error('All CORS proxies failed. Please try again later.');
                 
             } catch (error) {
                 console.log('Error fetching league data:', error);
@@ -919,6 +928,7 @@
 
         function showLoading() {
             document.getElementById('loading').style.display = 'block';
+            document.getElementById('error').style.display = 'none';
         }
 
         function hideLoading() {
@@ -927,7 +937,7 @@
 
         function showError(message) {
             const errorDiv = document.getElementById('error');
-            errorDiv.textContent = message;
+            errorDiv.innerHTML = `<strong>Error:</strong> ${message}`;
             errorDiv.style.display = 'block';
             hideLoading();
         }
