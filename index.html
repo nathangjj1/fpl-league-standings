@@ -662,6 +662,24 @@
             font-size: 16px;
         }
 
+        .fpl-app-link {
+            color: white;
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .fpl-app-link:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
         @media (max-width: 768px) {
             .gameweek-deadline {
                 padding: 12px 15px;
@@ -1059,6 +1077,9 @@
                         <div class="deadline-info">
                             <span class="deadline-label">⏰ Next Deadline:</span>
                             <span class="deadline-time">${formattedDeadline}</span>
+                            <a href="fpl://" class="fpl-app-link" onclick="openFPLApp()">
+                                📱 Open FPL App
+                            </a>
                         </div>
                     `;
                     
@@ -1070,6 +1091,9 @@
                         <div class="deadline-info">
                             <span class="deadline-label">⏰ Next Deadline:</span>
                             <span class="deadline-time">${formattedDeadline}</span>
+                            <a href="fpl://" class="fpl-app-link" onclick="openFPLApp()">
+                                📱 Open FPL App
+                            </a>
                         </div>
                     `;
                 }
@@ -1118,6 +1142,32 @@
 
         function hideLeaderboard() {
             document.getElementById('leaderboard').style.display = 'none';
+        }
+
+        function openFPLApp() {
+            // Try to open the FPL app
+            const fplAppUrl = 'fpl://';
+            const fplWebUrl = 'https://fantasy.premierleague.com/';
+            
+            // Create a hidden iframe to test if the app is installed
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = fplAppUrl;
+            
+            // Add to page temporarily
+            document.body.appendChild(iframe);
+            
+            // Remove after a short delay
+            setTimeout(() => {
+                document.body.removeChild(iframe);
+            }, 1000);
+            
+            // Fallback to web version after a delay
+            setTimeout(() => {
+                window.open(fplWebUrl, '_blank');
+            }, 500);
+            
+            return false; // Prevent default link behavior
         }
 
         // Load a default league on page load (optional)
