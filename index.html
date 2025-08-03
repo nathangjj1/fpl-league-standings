@@ -633,6 +633,54 @@
             background: #e3f2fd;
             border-radius: 6px;
         }
+
+        .gameweek-deadline {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            padding: 15px 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .deadline-info {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .deadline-label {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .deadline-time {
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .gameweek-deadline {
+                padding: 12px 15px;
+                margin: 10px 0;
+            }
+
+            .deadline-info {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .deadline-label {
+                font-size: 12px;
+            }
+
+            .deadline-time {
+                font-size: 14px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -662,6 +710,7 @@
         
         let currentLeagueId = null;
         let refreshInterval = null;
+        let nextDeadline = null;
 
         // FPL API Base URL
         const FPL_API_BASE = 'https://fantasy.premierleague.com/api';
@@ -676,13 +725,78 @@
             hideLeaderboard();
 
             try {
-                const data = await fetchLeagueData(leagueId);
-                displayLeagueData(data);
+                // Load both league data and gameweek info
+                const [leagueData, gameweekData] = await Promise.all([
+                    fetchLeagueData(leagueId),
+                    fetchGameweekData()
+                ]);
+                
+                displayLeagueData(leagueData);
+                displayGameweekInfo(gameweekData);
                 currentLeagueId = leagueId;
                 startAutoRefresh();
             } catch (error) {
                 console.error('Error loading league:', error);
                 showError('Failed to load league data. Please check the League ID and try again.');
+            }
+        }
+
+        async function fetchGameweekData() {
+            console.log('Fetching gameweek data');
+            
+            try {
+                // Try multiple CORS proxies as fallbacks
+                const proxies = [
+                    'https://cors-anywhere.herokuapp.com/',
+                    'https://api.allorigins.win/raw?url=',
+                    'https://corsproxy.io/?',
+                    'https://thingproxy.freeboard.io/fetch/'
+                ];
+                
+                const fplUrl = 'https://fantasy.premierleague.com/api/bootstrap-static/';
+                let lastError = null;
+                
+                for (const proxy of proxies) {
+                    try {
+                        const fullUrl = proxy + encodeURIComponent(fplUrl);
+                        console.log('Trying proxy for gameweek data:', proxy);
+                        
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 10000);
+                        
+                        const response = await fetch(fullUrl, {
+                            method: 'GET',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            signal: controller.signal
+                        });
+                        
+                        clearTimeout(timeoutId);
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        
+                        const data = await response.json();
+                        console.log('Received gameweek data:', data);
+                        return data;
+                        
+                    } catch (error) {
+                        console.log(`Proxy ${proxy} failed for gameweek data:`, error.message);
+                        if (error.name === 'AbortError') {
+                            console.log(`Proxy ${proxy} timed out for gameweek data`);
+                        }
+                        lastError = error;
+                        continue;
+                    }
+                }
+                
+                throw lastError || new Error('All CORS proxies failed for gameweek data');
+                
+            } catch (error) {
+                console.log('Error fetching gameweek data:', error);
+                throw error;
             }
         }
 
@@ -910,6 +1024,59 @@
             
             document.getElementById('lastUpdated').textContent = updateMsg;
             showLeaderboard();
+        }
+
+        function displayGameweekInfo(data) {
+            if (!data || !data.events) {
+                console.log('No gameweek data available');
+                return;
+            }
+
+            // Find the next gameweek
+            const now = new Date();
+            const nextGameweek = data.events.find(event => {
+                const deadline = new Date(event.deadline_time);
+                return deadline > now && event.finished === false;
+            });
+
+            if (nextGameweek) {
+                const deadline = new Date(nextGameweek.deadline_time);
+                const formattedDeadline = deadline.toLocaleString('en-GB', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                // Create or update deadline display
+                let deadlineDiv = document.getElementById('gameweek-deadline');
+                if (!deadlineDiv) {
+                    deadlineDiv = document.createElement('div');
+                    deadlineDiv.id = 'gameweek-deadline';
+                    deadlineDiv.className = 'gameweek-deadline';
+                    deadlineDiv.innerHTML = `
+                        <div class="deadline-info">
+                            <span class="deadline-label">⏰ Next Deadline:</span>
+                            <span class="deadline-time">${formattedDeadline}</span>
+                        </div>
+                    `;
+                    
+                    // Insert before the leaderboard
+                    const leaderboard = document.getElementById('leaderboard');
+                    leaderboard.insertAdjacentElement('beforebegin', deadlineDiv);
+                } else {
+                    deadlineDiv.innerHTML = `
+                        <div class="deadline-info">
+                            <span class="deadline-label">⏰ Next Deadline:</span>
+                            <span class="deadline-time">${formattedDeadline}</span>
+                        </div>
+                    `;
+                }
+
+                nextDeadline = deadline;
+                console.log('Next deadline:', formattedDeadline);
+            }
         }
 
         function startAutoRefresh() {
