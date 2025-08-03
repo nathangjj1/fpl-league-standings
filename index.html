@@ -166,11 +166,65 @@
             text-shadow: 0 0 10px rgba(205, 127, 50, 0.3);
         }
 
+        .leaderboard-key {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        .leaderboard-key h3 {
+            margin: 0 0 10px 0;
+            color: #495057;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .key-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .key-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .key-label {
+            font-weight: 600;
+            color: #007bff;
+            min-width: 30px;
+        }
+
+        .key-description {
+            color: #6c757d;
+        }
+
         .player-name {
             font-size: 16px;
             font-weight: 500;
             color: #2c3e50;
             line-height: 1.4;
+        }
+
+        .team-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2c3e50;
+            line-height: 1.2;
+            margin-bottom: 4px;
+        }
+
+        .manager-name {
+            font-size: 14px;
+            font-weight: 400;
+            color: #6c757d;
+            line-height: 1.2;
         }
 
         .points {
@@ -400,6 +454,28 @@
                 leaderboardContent.appendChild(preSeasonMsg);
             }
 
+            // Add key to explain columns
+            const keyDiv = document.createElement('div');
+            keyDiv.className = 'leaderboard-key';
+            keyDiv.innerHTML = `
+                <h3>📊 Column Guide</h3>
+                <div class="key-grid">
+                    <div class="key-item">
+                        <span class="key-label">GW:</span>
+                        <span class="key-description">Gameweek Points - Points scored in the current/last gameweek</span>
+                    </div>
+                    <div class="key-item">
+                        <span class="key-label">CH:</span>
+                        <span class="key-description">Chips Used - Number of special chips used (Wildcard, Free Hit, Triple Captain, Bench Boost)</span>
+                    </div>
+                    <div class="key-item">
+                        <span class="key-label">TR:</span>
+                        <span class="key-description">Transfers - Number of transfers made this season</span>
+                    </div>
+                </div>
+            `;
+            leaderboardContent.appendChild(keyDiv);
+
             // Display header
             const headerRow = document.createElement('div');
             headerRow.className = 'leaderboard-header';
@@ -434,9 +510,6 @@
                     `${player.player_first_name} ${player.player_last_name}` : 
                     'Unknown Manager';
                 
-                // Display both team name and manager name
-                const displayName = `${teamName} (${managerName})`;
-                
                 const points = isPreSeason ? 0 : (player.total || 0);
                 const gameweekPoints = isPreSeason ? 0 : (player.gameweek_points || 0);
                 const chipsUsed = isPreSeason ? 0 : (player.chips_used ? player.chips_used.length : 0);
@@ -446,7 +519,10 @@
                 row.className = 'leaderboard-row';
                 row.innerHTML = `
                     <div class="position ${positionClass}">${index + 1}</div>
-                    <div class="player-name">${displayName}</div>
+                    <div class="player-name">
+                        <div class="team-name">${teamName}</div>
+                        <div class="manager-name">${managerName}</div>
+                    </div>
                     <div class="points">${points} pts</div>
                     <div class="stats">
                         <div class="stat">
