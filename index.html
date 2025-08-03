@@ -26,23 +26,6 @@
             max-width: 100%;
             height: auto;
             margin: 0;
-            animation: headerFadeIn 1.2s ease-out;
-            transition: transform 0.3s ease;
-        }
-
-        .header-image:hover {
-            transform: scale(1.02);
-        }
-
-        @keyframes headerFadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px) scale(0.95);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
         }
 
         .content {
@@ -103,23 +86,27 @@
             display: inline-block;
             width: 20px;
             height: 20px;
-            border: 3px solid #007bff;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
             border-radius: 50%;
-            border-top-color: transparent;
             animation: spin 1s linear infinite;
             margin-left: 10px;
             vertical-align: middle;
         }
 
         @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
-        /* Add a subtle fade-in animation for the loading text */
-        .loading {
-            animation: fadeInUp 0.5s ease-out;
+        .loading-text {
+            display: inline-block;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
         }
 
         .error {
@@ -137,18 +124,6 @@
             border-radius: 15px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             overflow: hidden;
-            animation: slideInUp 0.8s ease-out;
-        }
-
-        @keyframes slideInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
         }
 
         .leaderboard h2 {
@@ -202,12 +177,6 @@
                 border: 1px solid #e9ecef;
                 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
                 background: white;
-                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            }
-
-            .leaderboard-row:hover {
-                transform: translateY(-3px);
-                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
             }
 
             .position {
@@ -456,42 +425,11 @@
             }
         }
 
-        .leaderboard-row {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
         .leaderboard-row:hover {
             background: #f8f9fa;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
-
-        /* Animate cards on load */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .leaderboard-row {
-            animation: fadeInUp 0.6s ease-out;
-        }
-
-        .leaderboard-row:nth-child(1) { animation-delay: 0.1s; }
-        .leaderboard-row:nth-child(2) { animation-delay: 0.2s; }
-        .leaderboard-row:nth-child(3) { animation-delay: 0.3s; }
-        .leaderboard-row:nth-child(4) { animation-delay: 0.4s; }
-        .leaderboard-row:nth-child(5) { animation-delay: 0.5s; }
-        .leaderboard-row:nth-child(6) { animation-delay: 0.6s; }
-        .leaderboard-row:nth-child(7) { animation-delay: 0.7s; }
-        .leaderboard-row:nth-child(8) { animation-delay: 0.8s; }
-        .leaderboard-row:nth-child(9) { animation-delay: 0.9s; }
-        .leaderboard-row:nth-child(10) { animation-delay: 1.0s; }
 
         /* Mobile touch optimizations */
         @media (max-width: 768px) {
@@ -538,11 +476,6 @@
             text-align: center;
             color: #495057;
             min-width: 40px;
-            transition: all 0.3s ease;
-        }
-
-        .position:hover {
-            transform: scale(1.1);
         }
 
         .position.gold {
@@ -699,7 +632,7 @@
             <h1>Ruxley FPL League</h1>
             
             <div id="loading" class="loading" style="display: none;">
-                Loading Live League Data.... Please be patient :)
+                <span class="loading-text">Loading league data...</span>
             </div>
 
             <div id="error" class="error" style="display: none;">
