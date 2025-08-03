@@ -242,12 +242,14 @@
             console.log('FPL League page loaded');
             
             try {
-                // Use our Netlify serverless function proxy
-                const proxyUrl = `/api/fpl-proxy?leagueId=${leagueId}`;
+                // Use a reliable public CORS proxy for production
+                const proxyUrl = 'https://api.allorigins.win/raw?url=';
+                const fplUrl = `https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`;
+                const fullUrl = proxyUrl + encodeURIComponent(fplUrl);
                 
-                console.log('Fetching from:', proxyUrl);
+                console.log('Fetching from:', fullUrl);
                 
-                const response = await fetch(proxyUrl, {
+                const response = await fetch(fullUrl, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json'
