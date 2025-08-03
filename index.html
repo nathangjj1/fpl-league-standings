@@ -163,89 +163,91 @@
             background: white;
         }
 
-        /* Mobile card layout */
+        /* Mobile leaderboard layout */
         @media (max-width: 768px) {
             .leaderboard-header {
-                display: none; /* Hide header on mobile */
+                display: grid;
+                grid-template-columns: 40px 1fr 60px 1fr;
+                gap: 8px;
+                padding: 12px 15px;
+                background: #f8f9fa;
+                border-bottom: 1px solid #e9ecef;
+                font-weight: 600;
+                color: #6c757d;
+                font-size: 12px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
             }
 
             .leaderboard-row {
-                display: block;
-                padding: 16px;
-                margin-bottom: 12px;
-                border-radius: 12px;
-                border: 1px solid #e9ecef;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+                display: grid;
+                grid-template-columns: 40px 1fr 60px 1fr;
+                gap: 8px;
+                padding: 12px 15px;
+                align-items: center;
+                border-bottom: 1px solid #f1f3f4;
                 background: white;
             }
 
             .position {
-                display: inline-block;
-                background: #007bff;
-                color: white;
-                width: 32px;
-                height: 32px;
-                border-radius: 50%;
+                font-size: 16px;
+                font-weight: 700;
                 text-align: center;
-                line-height: 32px;
-                font-weight: bold;
-                font-size: 14px;
-                margin-right: 12px;
+                color: #495057;
+                min-width: 30px;
             }
 
             .player-info {
-                display: flex;
-                align-items: center;
-                margin-bottom: 8px;
+                display: block;
             }
 
             .player-name {
+                font-size: 14px;
                 font-weight: 600;
-                font-size: 16px;
                 color: #333;
-                margin-bottom: 4px;
+                margin-bottom: 2px;
+                line-height: 1.2;
             }
 
             .team-name {
-                font-size: 14px;
-                color: #666;
-                margin-bottom: 8px;
-            }
-
-            .stats {
-                display: flex;
-                justify-content: space-between;
-                background: #f8f9fa;
-                padding: 12px;
-                border-radius: 8px;
-                margin-top: 8px;
-            }
-
-            .stat-item {
-                text-align: center;
-                flex: 1;
-            }
-
-            .stat-label {
                 font-size: 12px;
                 color: #666;
-                text-transform: uppercase;
-                font-weight: 600;
-                margin-bottom: 4px;
-            }
-
-            .stat-value {
-                font-size: 18px;
-                font-weight: bold;
-                color: #333;
+                line-height: 1.2;
             }
 
             .total-points {
-                font-size: 20px;
-                font-weight: bold;
+                font-size: 16px;
+                font-weight: 700;
+                color: #28a745;
+                text-align: center;
+            }
+
+            .stats {
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 4px;
+                text-align: center;
+            }
+
+            .stat-item {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 2px;
+            }
+
+            .stat-label {
+                font-size: 8px;
+                color: #6c757d;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                font-weight: 500;
+            }
+
+            .stat-value {
+                font-size: 12px;
+                font-weight: 700;
                 color: #007bff;
-                text-align: right;
-                margin-top: 8px;
             }
         }
 
@@ -804,17 +806,17 @@
                 <div class="player-name">Team</div>
                 <div class="points">Points</div>
                 <div class="stats">
-                    <div class="stat">
-                        <div class="stat-value">GW</div>
-                        <div class="stat-label">Gameweek</div>
+                    <div class="stat-item">
+                        <div class="stat-label">GW</div>
+                        <div class="stat-value">Gameweek</div>
                     </div>
-                    <div class="stat">
-                        <div class="stat-value">CH</div>
-                        <div class="stat-label">Chips</div>
+                    <div class="stat-item">
+                        <div class="stat-label">CH</div>
+                        <div class="stat-value">Chips</div>
                     </div>
-                    <div class="stat">
-                        <div class="stat-value">TR</div>
-                        <div class="stat-label">Transfers</div>
+                    <div class="stat-item">
+                        <div class="stat-label">TR</div>
+                        <div class="stat-value">Transfers</div>
                     </div>
                 </div>
             `;
