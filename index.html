@@ -303,7 +303,7 @@
         <img src="header.png" alt="FPL League Header" class="header-image">
         
         <div class="content">
-            <h1>FPL League Live Standings</h1>
+            <h1>Ruxley FPL League</h1>
             
             <div id="loading" class="loading" style="display: none;">
                 Loading league data...
@@ -448,35 +448,7 @@
                 return;
             }
 
-            // Show pre-season message if using new_entries data
-            if (isPreSeason) {
-                const preSeasonMsg = document.createElement('div');
-                preSeasonMsg.className = 'pre-season-message';
-                preSeasonMsg.innerHTML = '🏆 <strong>Pre-Season Standings</strong><br>All teams start with 0 points. The race begins when the season starts!';
-                leaderboardContent.appendChild(preSeasonMsg);
-            }
 
-            // Add key to explain columns
-            const keyDiv = document.createElement('div');
-            keyDiv.className = 'leaderboard-key';
-            keyDiv.innerHTML = `
-                <h3>📊 Column Guide</h3>
-                <div class="key-grid">
-                    <div class="key-item">
-                        <span class="key-label">GW:</span>
-                        <span class="key-description">Gameweek Points - Points scored in the current/last gameweek</span>
-                    </div>
-                    <div class="key-item">
-                        <span class="key-label">CH:</span>
-                        <span class="key-description">Chips Used - Number of special chips used (Wildcard, Free Hit, Triple Captain, Bench Boost)</span>
-                    </div>
-                    <div class="key-item">
-                        <span class="key-label">TR:</span>
-                        <span class="key-description">Transfers - Number of transfers made this season</span>
-                    </div>
-                </div>
-            `;
-            leaderboardContent.appendChild(keyDiv);
 
             // Display header
             const headerRow = document.createElement('div');
@@ -543,6 +515,28 @@
                 `;
                 leaderboardContent.appendChild(row);
             });
+
+            // Add key to explain columns (moved below the leaderboard)
+            const keyDiv = document.createElement('div');
+            keyDiv.className = 'leaderboard-key';
+            keyDiv.innerHTML = `
+                <h3>📊 Column Guide</h3>
+                <div class="key-grid">
+                    <div class="key-item">
+                        <span class="key-label">GW:</span>
+                        <span class="key-description">Gameweek Points - Points scored in the current/last gameweek</span>
+                    </div>
+                    <div class="key-item">
+                        <span class="key-label">CH:</span>
+                        <span class="key-description">Chips Used - Number of special chips used (Wildcard, Free Hit, Triple Captain, Bench Boost)</span>
+                    </div>
+                    <div class="key-item">
+                        <span class="key-label">TR:</span>
+                        <span class="key-description">Transfers - Number of transfers made this season</span>
+                    </div>
+                </div>
+            `;
+            leaderboardContent.appendChild(keyDiv);
 
             const updateMsg = isPreSeason ? 
                 'Pre-season standings - updates when season begins' : 
