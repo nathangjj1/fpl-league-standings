@@ -850,11 +850,13 @@
 
         // Start header image cycling
         function startHeaderCycling() {
+            console.log('Starting header cycling...');
             if (headerCycleInterval) {
                 clearInterval(headerCycleInterval);
             }
             // Cycle every 4 seconds
             headerCycleInterval = setInterval(cycleHeaderImage, 4000);
+            console.log('Header cycling interval set');
         }
 
         async function loadLeague() {
@@ -1298,6 +1300,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             console.log('DOM loaded, page is ready');
             // Start header image cycling
+            console.log('About to start header cycling...');
             startHeaderCycling();
             // Automatically load the league when the page loads
             loadLeague();
