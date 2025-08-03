@@ -763,7 +763,7 @@
 <body>
     <div class="container">
         <div class="header-container">
-            <img src="header4.png" alt="Ruxley FPL League Header" class="header-image active" id="header1">
+            <img src="header.png" alt="Ruxley FPL League Header" class="header-image active" id="header1">
             <img src="header2.png" alt="Ruxley FPL League Header" class="header-image" id="header2">
         </div>
         
@@ -795,7 +795,7 @@
         
         // Header image cycling
         const headerImages = ['header2.png', 'header3.png', 'header4.png'];
-        let currentHeaderIndex = 2; // Start with index 2 (header4.png) since that's what loads initially
+        let currentHeaderIndex = 0;
         let headerCycleInterval = null;
 
         // FPL API Base URL
@@ -803,60 +803,37 @@
 
         // Function to cycle through header images with crossfade
         function cycleHeaderImage() {
-            console.log('Cycling header image...');
             const header1 = document.getElementById('header1');
             const header2 = document.getElementById('header2');
             
-            if (!header1 || !header2) {
-                console.log('Header elements not found');
-                return;
-            }
+            if (!header1 || !header2) return;
             
             // Determine which image is currently active
             const activeHeader = header1.classList.contains('active') ? header1 : header2;
             const inactiveHeader = header1.classList.contains('active') ? header2 : header1;
             
-            console.log('Current index:', currentHeaderIndex);
-            console.log('Active header:', activeHeader.id);
-            console.log('Inactive header:', inactiveHeader.id);
-            
             // Update the inactive header with the next image
             currentHeaderIndex = (currentHeaderIndex + 1) % headerImages.length;
-            const nextImage = headerImages[currentHeaderIndex];
-            console.log('Next image:', nextImage);
-            
-            inactiveHeader.src = nextImage;
+            inactiveHeader.src = headerImages[currentHeaderIndex];
             inactiveHeader.alt = `Ruxley FPL League Header ${currentHeaderIndex + 1}`;
             
-            // Wait for the new image to load before starting transition
-            inactiveHeader.onload = () => {
-                console.log('Image loaded, starting transition');
-                // Crossfade effect - start transition immediately after load
-                inactiveHeader.classList.add('active');
-                activeHeader.classList.remove('active');
-                
-                // After transition, reset the old active header
-                setTimeout(() => {
-                    activeHeader.style.opacity = '0';
-                    console.log('Transition complete');
-                }, 1000);
-            };
+            // True crossfade effect - both images visible during transition
+            inactiveHeader.classList.add('active');
+            activeHeader.classList.remove('active');
             
-            // If image is already cached, trigger onload manually
-            if (inactiveHeader.complete) {
-                inactiveHeader.onload();
-            }
+            // After transition completes, reset the old header opacity
+            setTimeout(() => {
+                activeHeader.style.opacity = '0';
+            }, 1000);
         }
 
         // Start header image cycling
         function startHeaderCycling() {
-            console.log('Starting header cycling...');
             if (headerCycleInterval) {
                 clearInterval(headerCycleInterval);
             }
             // Cycle every 4 seconds
             headerCycleInterval = setInterval(cycleHeaderImage, 4000);
-            console.log('Header cycling interval set');
         }
 
         async function loadLeague() {
@@ -1300,7 +1277,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             console.log('DOM loaded, page is ready');
             // Start header image cycling
-            console.log('About to start header cycling...');
             startHeaderCycling();
             // Automatically load the league when the page loads
             loadLeague();
