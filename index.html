@@ -803,30 +803,42 @@
 
         // Function to cycle through header images with crossfade
         function cycleHeaderImage() {
+            console.log('Cycling header image...');
             const header1 = document.getElementById('header1');
             const header2 = document.getElementById('header2');
             
-            if (!header1 || !header2) return;
+            if (!header1 || !header2) {
+                console.log('Header elements not found');
+                return;
+            }
             
             // Determine which image is currently active
             const activeHeader = header1.classList.contains('active') ? header1 : header2;
             const inactiveHeader = header1.classList.contains('active') ? header2 : header1;
             
+            console.log('Current index:', currentHeaderIndex);
+            console.log('Active header:', activeHeader.id);
+            console.log('Inactive header:', inactiveHeader.id);
+            
             // Update the inactive header with the next image
             currentHeaderIndex = (currentHeaderIndex + 1) % headerImages.length;
-            inactiveHeader.src = headerImages[currentHeaderIndex];
+            const nextImage = headerImages[currentHeaderIndex];
+            console.log('Next image:', nextImage);
+            
+            inactiveHeader.src = nextImage;
             inactiveHeader.alt = `Ruxley FPL League Header ${currentHeaderIndex + 1}`;
             
             // Wait for the new image to load before starting transition
             inactiveHeader.onload = () => {
+                console.log('Image loaded, starting transition');
                 // Crossfade effect - start transition immediately after load
-                inactiveHeader.style.opacity = '0';
                 inactiveHeader.classList.add('active');
                 activeHeader.classList.remove('active');
                 
                 // After transition, reset the old active header
                 setTimeout(() => {
                     activeHeader.style.opacity = '0';
+                    console.log('Transition complete');
                 }, 1000);
             };
             
