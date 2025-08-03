@@ -763,8 +763,8 @@
 <body>
     <div class="container">
         <div class="header-container">
-            <img src="header.png" alt="Ruxley FPL League Header" class="header-image active" id="header1">
-            <img src="header2.png" alt="Ruxley FPL League Header" class="header-image" id="header2">
+            <img src="header2.png" alt="Ruxley FPL League Header" class="header-image active" id="header1">
+            <img src="header3.png" alt="Ruxley FPL League Header" class="header-image" id="header2">
         </div>
         
         <div class="content">
@@ -795,7 +795,7 @@
         
         // Header image cycling
         const headerImages = ['header2.png', 'header3.png', 'header4.png'];
-        let currentHeaderIndex = 0;
+        let currentHeaderIndex = 1; // Start at 1 since we're already showing header2.png
         let headerCycleInterval = null;
 
         // FPL API Base URL
@@ -821,9 +821,9 @@
             inactiveHeader.classList.add('active');
             activeHeader.classList.remove('active');
             
-            // After transition completes, reset the old header opacity
+            // After transition completes, reset the old header opacity and remove inline styles
             setTimeout(() => {
-                activeHeader.style.opacity = '0';
+                activeHeader.style.opacity = '';
             }, 1000);
         }
 
