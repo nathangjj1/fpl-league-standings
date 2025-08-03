@@ -44,6 +44,15 @@
             height: auto;
             margin: 0;
             loading: lazy;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .header-image.fade-out {
+            opacity: 0;
+        }
+
+        .header-image.fade-in {
+            opacity: 1;
         }
 
         .content {
@@ -774,9 +783,47 @@
         let currentLeagueId = null;
         let refreshInterval = null;
         let nextDeadline = null;
+        
+        // Header image cycling
+        const headerImages = ['header2.png', 'header3.png', 'header4.png'];
+        let currentHeaderIndex = 0;
+        let headerCycleInterval = null;
 
         // FPL API Base URL
         const FPL_API_BASE = 'https://fantasy.premierleague.com/api';
+
+        // Function to cycle through header images
+        function cycleHeaderImage() {
+            const headerImg = document.querySelector('.header-image');
+            if (!headerImg) return;
+            
+            // Fade out current image
+            headerImg.classList.add('fade-out');
+            
+            setTimeout(() => {
+                // Change to next image
+                currentHeaderIndex = (currentHeaderIndex + 1) % headerImages.length;
+                headerImg.src = headerImages[currentHeaderIndex];
+                headerImg.alt = `Ruxley FPL League Header ${currentHeaderIndex + 1}`;
+                
+                // Fade in new image
+                headerImg.classList.remove('fade-out');
+                headerImg.classList.add('fade-in');
+                
+                setTimeout(() => {
+                    headerImg.classList.remove('fade-in');
+                }, 500);
+            }, 500);
+        }
+
+        // Start header image cycling
+        function startHeaderCycling() {
+            if (headerCycleInterval) {
+                clearInterval(headerCycleInterval);
+            }
+            // Cycle every 4 seconds
+            headerCycleInterval = setInterval(cycleHeaderImage, 4000);
+        }
 
         async function loadLeague() {
             console.log('loadLeague function called');
@@ -1218,6 +1265,8 @@
         // Load a default league on page load (optional)
         document.addEventListener('DOMContentLoaded', () => {
             console.log('DOM loaded, page is ready');
+            // Start header image cycling
+            startHeaderCycling();
             // Automatically load the league when the page loads
             loadLeague();
         });
