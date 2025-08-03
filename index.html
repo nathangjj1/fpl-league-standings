@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FPL League - Live Standings</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-image: url('background.png');
+            background-repeat: repeat;
+            background-size: auto;
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0;
+            text-align: center;
+        }
+
+        .header-image {
+            max-width: 100%;
+            height: auto;
+            margin: 0;
+        }
+
+        .content {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 10px;
+            margin-top: -5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .league-input {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+
+        .league-input input {
+            padding: 10px 15px;
+            border: 2px solid #007bff;
+            border-radius: 5px;
+            font-size: 16px;
+            width: 200px;
+            margin-right: 10px;
+        }
+
+        .league-input button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .league-input button:hover {
+            background: #0056b3;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 18px;
+        }
+
+        .error {
+            text-align: center;
+            padding: 20px;
+            color: #dc3545;
+            background: #f8d7da;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .leaderboard {
+            margin-top: 20px;
+        }
+
+        .leaderboard h2 {
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 28px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #333;
+        }
+
+        .leaderboard-row {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            margin: 8px 0;
+            background: #f8f9fa;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            border: 1px solid #e9ecef;
+        }
+
+        .leaderboard-row:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .position {
+            font-size: 24px;
+            font-weight: bold;
+            margin-right: 20px;
+            min-width: 40px;
+            color: #333;
+        }
+
+        .position.gold {
+            color: #FFD700;
+        }
+
+        .position.silver {
+            color: #C0C0C0;
+        }
+
+        .position.bronze {
+            color: #CD7F32;
+        }
+
+        .player-name {
+            flex: 1;
+            font-size: 18px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .points {
+            font-size: 20px;
+            font-weight: bold;
+            color: #28a745;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-left: 20px;
+        }
+
+        .stat {
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .last-updated {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-top: 20px;
+            font-style: italic;
+        }
+
+        .auto-refresh {
+            text-align: center;
+            margin-top: 10px;
+            color: #007bff;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="header.png" alt="FPL League Header" class="header-image">
+        
+        <div class="content">
+            <h1>FPL League Live Standings</h1>
+            
+            <div id="loading" class="loading" style="display: none;">
+                Loading league data...
+            </div>
+
+            <div id="error" class="error" style="display: none;">
+                Error loading league data. Please check the League ID and try again.
+            </div>
+
+            <div id="leaderboard" class="leaderboard" style="display: none;">
+                <h2>🏆 League Leaderboard</h2>
+                <div id="leaderboard-content"></div>
+                <div class="last-updated" id="lastUpdated"></div>
+                <div class="auto-refresh">Auto-refreshing every 5 minutes</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        console.log('FPL League page loaded');
+        
+        let currentLeagueId = null;
+        let refreshInterval = null;
+
+        // FPL API Base URL
+        const FPL_API_BASE = 'https://fantasy.premierleague.com/api';
+
+        async function loadLeague() {
+            console.log('loadLeague function called');
+            const leagueId = '190589'; // Hardcoded league ID
+            console.log('League ID:', leagueId);
+            
+            showLoading();
+            hideError();
+            hideLeaderboard();
+
+            try {
+                const data = await fetchLeagueData(leagueId);
+                displayLeagueData(data);
+                currentLeagueId = leagueId;
+                startAutoRefresh();
+            } catch (error) {
+                console.error('Error loading league:', error);
+                showError('Failed to load league data. Please check the League ID and try again.');
+            }
+        }
+
+        async function fetchLeagueData(leagueId) {
+            console.log('FPL League page loaded');
+            
+            try {
+                // Use our Express server proxy
+                const proxyUrl = `/api/fpl-proxy?leagueId=${leagueId}`;
+                
+                console.log('Fetching from:', proxyUrl);
+                
+                const response = await fetch(proxyUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.log('Response error text:', errorText);
+                    throw new Error(`HTTP error! status: ${response.status}: ${errorText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Received data:', data);
+                
+                // Check if the API returned an error
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                return data;
+                
+            } catch (error) {
+                console.log('Error fetching league data:', error);
+                throw error; // Re-throw the error instead of returning mock data
+            }
+        }
+
+        function displayLeagueData(data) {
+            const leaderboardContent = document.getElementById('leaderboard-content');
+            leaderboardContent.innerHTML = '';
+
+            console.log('Displaying data:', data);
+            console.log('Data structure:', JSON.stringify(data, null, 2));
+
+            // Check if data is null or invalid
+            if (!data) {
+                const errorMsg = document.createElement('div');
+                errorMsg.style.cssText = 'text-align: center; padding: 20px; background: #f8d7da; border-radius: 10px; margin-bottom: 20px; color: #721c24; font-weight: bold;';
+                errorMsg.innerHTML = '❌ <strong>Invalid league data received</strong><br>Please check the League ID and try again.<br><br>Debug info: ' + JSON.stringify(data, null, 2);
+                leaderboardContent.appendChild(errorMsg);
+                showLeaderboard();
+                return;
+            }
+
+            // Check different possible data structures for teams
+            let results = [];
+            let isPreSeason = false;
+            
+            // First try standings (for active season)
+            if (data.standings && data.standings.results && data.standings.results.length > 0) {
+                results = data.standings.results;
+                console.log('Using standings data:', results);
+            } 
+            // If no standings, try new_entries (for pre-season)
+            else if (data.new_entries && data.new_entries.results && data.new_entries.results.length > 0) {
+                results = data.new_entries.results;
+                isPreSeason = true;
+                console.log('Using new_entries data (pre-season):', results);
+            }
+            // Fallback to other possible structures
+            else if (data.standings && data.standings.standings) {
+                results = data.standings.standings;
+                console.log('Using standings.standings data:', results);
+            } else if (Array.isArray(data.standings)) {
+                results = data.standings;
+                console.log('Using standings array data:', results);
+            }
+
+            console.log('Found results:', results);
+            console.log('Results length:', results.length);
+            console.log('Is pre-season:', isPreSeason);
+
+            // Check if there are any teams in the league
+            if (!results || results.length === 0) {
+                const noTeamsMsg = document.createElement('div');
+                noTeamsMsg.style.cssText = 'text-align: center; padding: 20px; background: #fff3cd; border-radius: 10px; margin-bottom: 20px; color: #856404; font-weight: bold;';
+                noTeamsMsg.innerHTML = '🏆 <strong>No teams found in this league</strong><br>This league might be empty or the League ID might be incorrect.<br><br>Debug info: ' + JSON.stringify(data, null, 2);
+                leaderboardContent.appendChild(noTeamsMsg);
+                showLeaderboard();
+                return;
+            }
+
+            // Show pre-season message if using new_entries data
+            if (isPreSeason) {
+                const preSeasonMsg = document.createElement('div');
+                preSeasonMsg.style.cssText = 'text-align: center; padding: 20px; background: #e3f2fd; border-radius: 10px; margin-bottom: 20px; color: #1976d2; font-weight: bold;';
+                preSeasonMsg.innerHTML = '🏆 <strong>Pre-Season Standings</strong><br>All teams start with 0 points. The race begins when the season starts!';
+                leaderboardContent.appendChild(preSeasonMsg);
+            }
+
+            results.forEach((player, index) => {
+                console.log('Processing player:', player);
+                const positionClass = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : '';
+                
+                // Handle different data structures
+                const teamName = player.entry_name || 'Unknown Team';
+                const managerName = player.player_first_name && player.player_last_name ? 
+                    `${player.player_first_name} ${player.player_last_name}` : 
+                    'Unknown Manager';
+                
+                // Display both team name and manager name
+                const displayName = `${teamName} (${managerName})`;
+                
+                const points = isPreSeason ? 0 : (player.total || 0);
+                const gameweekPoints = isPreSeason ? 0 : (player.gameweek_points || 0);
+                const chipsUsed = isPreSeason ? 0 : (player.chips_used ? player.chips_used.length : 0);
+                const transfers = isPreSeason ? 0 : (player.transfers || 0);
+                
+                const row = document.createElement('div');
+                row.className = 'leaderboard-row';
+                row.innerHTML = `
+                    <div class="position ${positionClass}">${index + 1}</div>
+                    <div class="player-name">${displayName}</div>
+                    <div class="points">${points} pts</div>
+                    <div class="stats">
+                        <div class="stat">
+                            <div class="stat-value">${gameweekPoints}</div>
+                            <div>GW</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">${chipsUsed}</div>
+                            <div>CH</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">${transfers}</div>
+                            <div>TR</div>
+                        </div>
+                    </div>
+                `;
+                leaderboardContent.appendChild(row);
+            });
+
+            const updateMsg = isPreSeason ? 
+                'Pre-season standings - updates when season begins' : 
+                `Last updated: ${new Date().toLocaleString()}`;
+            
+            document.getElementById('lastUpdated').textContent = updateMsg;
+            showLeaderboard();
+        }
+
+        function startAutoRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+            
+            refreshInterval = setInterval(() => {
+                if (currentLeagueId) {
+                    loadLeague();
+                }
+            }, 5 * 60 * 1000); // Refresh every 5 minutes
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            hideLoading();
+        }
+
+        function hideError() {
+            document.getElementById('error').style.display = 'none';
+        }
+
+        function showLeaderboard() {
+            document.getElementById('leaderboard').style.display = 'block';
+            hideLoading();
+        }
+
+        function hideLeaderboard() {
+            document.getElementById('leaderboard').style.display = 'none';
+        }
+
+        // Load a default league on page load (optional)
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM loaded, page is ready');
+            // Automatically load the league when the page loads
+            loadLeague();
+        });
+    </script>
+</body>
+</html> 
