@@ -54,11 +54,13 @@
             top: 0;
             left: 0;
             opacity: 0;
+            display: block;
         }
 
         .header-image.active {
             opacity: 1;
             position: relative;
+            z-index: 1;
         }
 
         .content {
@@ -806,7 +808,10 @@
             const header1 = document.getElementById('header1');
             const header2 = document.getElementById('header2');
             
-            if (!header1 || !header2) return;
+            if (!header1 || !header2) {
+                console.log('Header elements not found');
+                return;
+            }
             
             // Determine which image is currently active
             const activeHeader = header1.classList.contains('active') ? header1 : header2;
@@ -814,17 +819,30 @@
             
             // Update the inactive header with the next image
             currentHeaderIndex = (currentHeaderIndex + 1) % headerImages.length;
-            inactiveHeader.src = headerImages[currentHeaderIndex];
-            inactiveHeader.alt = `Ruxley FPL League Header ${currentHeaderIndex + 1}`;
+            const nextImage = headerImages[currentHeaderIndex];
+            console.log('Cycling to image:', nextImage, 'Index:', currentHeaderIndex);
             
-            // True crossfade effect - both images visible during transition
-            inactiveHeader.classList.add('active');
-            activeHeader.classList.remove('active');
-            
-            // After transition completes, reset the old header opacity and remove inline styles
-            setTimeout(() => {
-                activeHeader.style.opacity = '';
-            }, 1000);
+            // Preload the image before switching
+            const img = new Image();
+            img.onload = function() {
+                inactiveHeader.src = nextImage;
+                inactiveHeader.alt = `Ruxley FPL League Header ${currentHeaderIndex + 1}`;
+                
+                // True crossfade effect - both images visible during transition
+                inactiveHeader.classList.add('active');
+                activeHeader.classList.remove('active');
+                
+                // After transition completes, reset the old header opacity and remove inline styles
+                setTimeout(() => {
+                    activeHeader.style.opacity = '';
+                }, 1000);
+            };
+            img.onerror = function() {
+                console.log('Failed to load image:', nextImage);
+                // Skip to next image if current one fails
+                currentHeaderIndex = (currentHeaderIndex + 1) % headerImages.length;
+            };
+            img.src = nextImage;
         }
 
         // Start header image cycling
@@ -832,6 +850,8 @@
             if (headerCycleInterval) {
                 clearInterval(headerCycleInterval);
             }
+            console.log('Starting header cycling with images:', headerImages);
+            console.log('Initial index:', currentHeaderIndex);
             // Cycle every 4 seconds
             headerCycleInterval = setInterval(cycleHeaderImage, 4000);
         }
