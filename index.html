@@ -39,20 +39,26 @@
             text-align: center;
         }
 
+        .header-container {
+            position: relative;
+            width: 100%;
+        }
+
         .header-image {
             max-width: 100%;
             height: auto;
             margin: 0;
             loading: lazy;
-            transition: opacity 0.5s ease-in-out;
-        }
-
-        .header-image.fade-out {
+            transition: opacity 1s ease-in-out;
+            position: absolute;
+            top: 0;
+            left: 0;
             opacity: 0;
         }
 
-        .header-image.fade-in {
+        .header-image.active {
             opacity: 1;
+            position: relative;
         }
 
         .content {
@@ -756,7 +762,10 @@
 </head>
 <body>
     <div class="container">
-        <img src="header.png" alt="Ruxley FPL League Header" class="header-image">
+        <div class="header-container">
+            <img src="header.png" alt="Ruxley FPL League Header" class="header-image active" id="header1">
+            <img src="header2.png" alt="Ruxley FPL League Header" class="header-image" id="header2">
+        </div>
         
         <div class="content">
             <div id="loading" class="loading" style="display: none;">
@@ -792,28 +801,31 @@
         // FPL API Base URL
         const FPL_API_BASE = 'https://fantasy.premierleague.com/api';
 
-        // Function to cycle through header images
+        // Function to cycle through header images with crossfade
         function cycleHeaderImage() {
-            const headerImg = document.querySelector('.header-image');
-            if (!headerImg) return;
+            const header1 = document.getElementById('header1');
+            const header2 = document.getElementById('header2');
             
-            // Fade out current image
-            headerImg.classList.add('fade-out');
+            if (!header1 || !header2) return;
             
+            // Determine which image is currently active
+            const activeHeader = header1.classList.contains('active') ? header1 : header2;
+            const inactiveHeader = header1.classList.contains('active') ? header2 : header1;
+            
+            // Update the inactive header with the next image
+            currentHeaderIndex = (currentHeaderIndex + 1) % headerImages.length;
+            inactiveHeader.src = headerImages[currentHeaderIndex];
+            inactiveHeader.alt = `Ruxley FPL League Header ${currentHeaderIndex + 1}`;
+            
+            // Crossfade effect
+            inactiveHeader.style.opacity = '0';
+            inactiveHeader.classList.add('active');
+            activeHeader.classList.remove('active');
+            
+            // After transition, reset the old active header
             setTimeout(() => {
-                // Change to next image
-                currentHeaderIndex = (currentHeaderIndex + 1) % headerImages.length;
-                headerImg.src = headerImages[currentHeaderIndex];
-                headerImg.alt = `Ruxley FPL League Header ${currentHeaderIndex + 1}`;
-                
-                // Fade in new image
-                headerImg.classList.remove('fade-out');
-                headerImg.classList.add('fade-in');
-                
-                setTimeout(() => {
-                    headerImg.classList.remove('fade-in');
-                }, 500);
-            }, 500);
+                activeHeader.style.opacity = '0';
+            }, 1000);
         }
 
         // Start header image cycling
