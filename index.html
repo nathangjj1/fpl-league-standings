@@ -69,6 +69,8 @@
             border-radius: 10px;
             margin-top: -5px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            position: relative;
+            z-index: 10;
         }
 
         h1 {
@@ -808,10 +810,7 @@
             const header1 = document.getElementById('header1');
             const header2 = document.getElementById('header2');
             
-            if (!header1 || !header2) {
-                console.log('Header elements not found');
-                return;
-            }
+            if (!header1 || !header2) return;
             
             // Determine which image is currently active
             const activeHeader = header1.classList.contains('active') ? header1 : header2;
@@ -820,7 +819,6 @@
             // Update the inactive header with the next image
             currentHeaderIndex = (currentHeaderIndex + 1) % headerImages.length;
             const nextImage = headerImages[currentHeaderIndex];
-            console.log('Cycling to image:', nextImage, 'Index:', currentHeaderIndex);
             
             // Preload the image before switching
             const img = new Image();
@@ -838,7 +836,6 @@
                 }, 1000);
             };
             img.onerror = function() {
-                console.log('Failed to load image:', nextImage);
                 // Skip to next image if current one fails
                 currentHeaderIndex = (currentHeaderIndex + 1) % headerImages.length;
             };
@@ -850,8 +847,6 @@
             if (headerCycleInterval) {
                 clearInterval(headerCycleInterval);
             }
-            console.log('Starting header cycling with images:', headerImages);
-            console.log('Initial index:', currentHeaderIndex);
             // Cycle every 4 seconds
             headerCycleInterval = setInterval(cycleHeaderImage, 4000);
         }
