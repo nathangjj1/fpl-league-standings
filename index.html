@@ -220,7 +220,7 @@
 
         .leaderboard-header {
             display: grid;
-            grid-template-columns: 60px 50px 1fr 100px 1fr;
+            grid-template-columns: 60px 70px 1fr 100px 1fr;
             gap: 15px;
             padding: 15px 20px;
             background: #f8f9fa;
@@ -235,7 +235,7 @@
 
         .leaderboard-row {
             display: grid;
-            grid-template-columns: 60px 50px 1fr 100px 1fr;
+            grid-template-columns: 60px 70px 1fr 100px 1fr;
             gap: 15px;
             padding: 18px 20px;
             align-items: center;
@@ -245,8 +245,8 @@
         }
 
         .profile-picture {
-            width: 40px;
-            height: 40px;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
             object-fit: cover;
             border: 2px solid #e9ecef;
@@ -954,9 +954,9 @@
             <div id="modalName" class="profile-modal-name"></div>
             <div id="modalTeam" class="profile-modal-team"></div>
             <div id="modalStats" class="profile-modal-stats">
-                <h4>⚽ Random Footballer Stats</h4>
+                <h4>🏆 FPL Team Information</h4>
                 <div id="modalStatsGrid" class="profile-modal-stats-grid">
-                    <!-- Stats will be populated by JavaScript -->
+                    <!-- FPL team info will be populated by JavaScript -->
                 </div>
             </div>
             <button class="profile-modal-close" onclick="closeProfileModal()">Close</button>
@@ -1332,7 +1332,7 @@
                 
                 // Add click handler for profile picture popup
                 profileImg.addEventListener('click', function() {
-                    openProfileModal(profileImg.src, managerName, teamName);
+                    openProfileModal(profileImg.src, managerName, teamName, player);
                 });
                 
                 leaderboardContent.appendChild(row);
@@ -1494,47 +1494,236 @@
             return false; // Prevent default link behavior
         }
 
-        // Random Footballer Stats Data
-        const footballerStats = [
-            { label: 'Goals Scored', value: () => Math.floor(Math.random() * 25) + 5 },
-            { label: 'Assists', value: () => Math.floor(Math.random() * 15) + 3 },
-            { label: 'Pass Accuracy', value: () => Math.floor(Math.random() * 20) + 75 + '%' },
-            { label: 'Tackles Won', value: () => Math.floor(Math.random() * 50) + 20 },
-            { label: 'Clean Sheets', value: () => Math.floor(Math.random() * 15) + 2 },
-            { label: 'Yellow Cards', value: () => Math.floor(Math.random() * 8) + 1 },
-            { label: 'Red Cards', value: () => Math.floor(Math.random() * 3) },
-            { label: 'Minutes Played', value: () => Math.floor(Math.random() * 1000) + 1500 },
-            { label: 'Shots on Target', value: () => Math.floor(Math.random() * 30) + 10 },
-            { label: 'Crosses Completed', value: () => Math.floor(Math.random() * 40) + 15 },
-            { label: 'Dribbles Completed', value: () => Math.floor(Math.random() * 60) + 20 },
-            { label: 'Fouls Committed', value: () => Math.floor(Math.random() * 15) + 5 }
-        ];
-
-        function generateRandomStats() {
-            // Shuffle the stats array and take 6 random stats
-            const shuffled = [...footballerStats].sort(() => 0.5 - Math.random());
-            return shuffled.slice(0, 6);
+        // FPL Team Information Data
+        function generateFPLTeamInfo(player) {
+            const teamInfo = [];
+            
+            // Basic FPL stats
+            if (player.total !== undefined) {
+                teamInfo.push({ label: 'Total Points', value: player.total });
+            }
+            
+            if (player.gameweek_points !== undefined) {
+                teamInfo.push({ label: 'GW Points', value: player.gameweek_points });
+            }
+            
+            if (player.transfers !== undefined) {
+                teamInfo.push({ label: 'Total Transfers', value: player.transfers });
+            }
+            
+            if (player.chips_used && player.chips_used.length > 0) {
+                teamInfo.push({ label: 'Chips Used', value: player.chips_used.length });
+            }
+            
+            // Team value (if available)
+            if (player.entry !== undefined) {
+                teamInfo.push({ label: 'Team ID', value: player.entry });
+            }
+            
+            // League position (if available)
+            if (player.rank !== undefined) {
+                teamInfo.push({ label: 'League Rank', value: player.rank });
+            }
+            
+            // If we don't have enough real data, add some placeholder info
+            if (teamInfo.length < 4) {
+                teamInfo.push({ label: 'Team Status', value: 'Active' });
+                teamInfo.push({ label: 'Last Updated', value: 'Live' });
+            }
+            
+            return teamInfo;
         }
 
-        function displayRandomStats() {
-            const statsGrid = document.getElementById('modalStatsGrid');
-            const randomStats = generateRandomStats();
+        // Enhanced FPL Team Information with detailed data
+        async function fetchDetailedTeamInfo(teamId) {
+            try {
+                // Try multiple CORS proxies as fallbacks (ordered by reliability)
+                const proxies = [
+                    'https://corsproxy.io/?',
+                    'https://api.allorigins.win/raw?url=',
+                    'https://cors-anywhere.herokuapp.com/',
+                    'https://thingproxy.freeboard.io/fetch/'
+                ];
+                
+                const fplUrl = `https://fantasy.premierleague.com/api/entry/${teamId}/event/${getCurrentGameweek()}/picks/`;
+                let lastError = null;
+                
+                for (const proxy of proxies) {
+                    try {
+                        const fullUrl = proxy + encodeURIComponent(fplUrl);
+                        console.log('Trying proxy for detailed team info:', proxy);
+                        
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 10000);
+                        
+                        const response = await fetch(fullUrl, {
+                            method: 'GET',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            signal: controller.signal
+                        });
+                        
+                        clearTimeout(timeoutId);
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        
+                        const data = await response.json();
+                        console.log('Received detailed team data:', data);
+                        return data;
+                        
+                    } catch (error) {
+                        console.log(`Proxy ${proxy} failed for detailed team data:`, error.message);
+                        lastError = error;
+                        continue;
+                    }
+                }
+                
+                throw lastError || new Error('All CORS proxies failed for detailed team data');
+                
+            } catch (error) {
+                console.log('Error fetching detailed team data:', error);
+                return null;
+            }
+        }
+
+        function getCurrentGameweek() {
+            // This would ideally be fetched from the bootstrap-static API
+            // For now, we'll use a reasonable default or try to get it from existing data
+            return 1; // Default to gameweek 1, will be updated when we have the data
+        }
+
+        function generateDetailedFPLTeamInfo(player, detailedData = null) {
+            const teamInfo = [];
             
+            // Basic FPL stats
+            if (player.total !== undefined) {
+                teamInfo.push({ label: 'Total Points', value: player.total });
+            }
+            
+            if (player.gameweek_points !== undefined) {
+                teamInfo.push({ label: 'GW Points', value: player.gameweek_points });
+            }
+            
+            if (player.transfers !== undefined) {
+                teamInfo.push({ label: 'Total Transfers', value: player.transfers });
+            }
+            
+            // Detailed team information if available
+            if (detailedData) {
+                if (detailedData.picks) {
+                    // Find captain and vice-captain
+                    const captain = detailedData.picks.find(pick => pick.is_captain);
+                    const viceCaptain = detailedData.picks.find(pick => pick.is_vice_captain);
+                    
+                    if (captain) {
+                        teamInfo.push({ label: 'Captain', value: `Player ${captain.element}` });
+                    }
+                    
+                    if (viceCaptain) {
+                        teamInfo.push({ label: 'Vice Captain', value: `Player ${viceCaptain.element}` });
+                    }
+                    
+                    // Count transfers this week
+                    if (detailedData.transfers) {
+                        teamInfo.push({ label: 'GW Transfers', value: detailedData.transfers.length });
+                    }
+                    
+                    // Chip used this week
+                    if (detailedData.chip) {
+                        teamInfo.push({ label: 'GW Chip', value: detailedData.chip });
+                    }
+                }
+            }
+            
+            if (player.chips_used && player.chips_used.length > 0) {
+                teamInfo.push({ label: 'Chips Used', value: player.chips_used.length });
+            }
+            
+            // Team value (if available)
+            if (player.entry !== undefined) {
+                teamInfo.push({ label: 'Team ID', value: player.entry });
+            }
+            
+            // League position (if available)
+            if (player.rank !== undefined) {
+                teamInfo.push({ label: 'League Rank', value: player.rank });
+            }
+            
+            // If we don't have enough real data, add some placeholder info
+            if (teamInfo.length < 4) {
+                teamInfo.push({ label: 'Team Status', value: 'Active' });
+                teamInfo.push({ label: 'Last Updated', value: 'Live' });
+            }
+            
+            return teamInfo;
+        }
+
+        async function displayFPLTeamInfo(player) {
+            const statsGrid = document.getElementById('modalStatsGrid');
+            
+            // Show basic info immediately
+            const basicTeamInfo = generateFPLTeamInfo(player);
             statsGrid.innerHTML = '';
             
-            randomStats.forEach(stat => {
+            basicTeamInfo.forEach(info => {
                 const statItem = document.createElement('div');
                 statItem.className = 'profile-modal-stat-item';
                 statItem.innerHTML = `
-                    <span class="profile-modal-stat-label">${stat.label}</span>
-                    <span class="profile-modal-stat-value">${stat.value()}</span>
+                    <span class="profile-modal-stat-label">${info.label}</span>
+                    <span class="profile-modal-stat-value">${info.value}</span>
                 `;
                 statsGrid.appendChild(statItem);
             });
+            
+            // Add a loading indicator for detailed data
+            const loadingItem = document.createElement('div');
+            loadingItem.className = 'profile-modal-stat-item';
+            loadingItem.innerHTML = `
+                <span class="profile-modal-stat-label">Loading detailed info...</span>
+                <span class="profile-modal-stat-value">⏳</span>
+            `;
+            statsGrid.appendChild(loadingItem);
+            
+            try {
+                // Try to fetch detailed team information in background
+                let detailedData = null;
+                if (player.entry) {
+                    detailedData = await fetchDetailedTeamInfo(player.entry);
+                }
+                
+                // Remove loading indicator
+                statsGrid.removeChild(loadingItem);
+                
+                // Generate team info with detailed data if available
+                const detailedTeamInfo = generateDetailedFPLTeamInfo(player, detailedData);
+                
+                // Replace basic info with detailed info
+                statsGrid.innerHTML = '';
+                
+                detailedTeamInfo.forEach(info => {
+                    const statItem = document.createElement('div');
+                    statItem.className = 'profile-modal-stat-item';
+                    statItem.innerHTML = `
+                        <span class="profile-modal-stat-label">${info.label}</span>
+                        <span class="profile-modal-stat-value">${info.value}</span>
+                    `;
+                    statsGrid.appendChild(statItem);
+                });
+                
+            } catch (error) {
+                console.log('Error loading detailed team info:', error);
+                // Remove loading indicator and keep basic info
+                if (loadingItem.parentNode) {
+                    statsGrid.removeChild(loadingItem);
+                }
+            }
         }
 
         // Profile Modal Functions
-        function openProfileModal(imageSrc, managerName, teamName) {
+        function openProfileModal(imageSrc, managerName, teamName, player) {
             const modal = document.getElementById('profileModal');
             const modalImage = document.getElementById('modalImage');
             const modalName = document.getElementById('modalName');
@@ -1545,10 +1734,11 @@
             modalName.textContent = managerName;
             modalTeam.textContent = teamName;
             
-            // Generate and display random stats
-            displayRandomStats();
-            
+            // Show modal immediately
             modal.style.display = 'block';
+            
+            // Generate and display FPL team information (async, won't block modal)
+            displayFPLTeamInfo(player);
             
             // Close modal when clicking outside
             modal.addEventListener('click', function(e) {
