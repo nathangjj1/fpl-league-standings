@@ -1,0 +1,17 @@
+{
+  "name": "fpl-league",
+  "version": "1.0.0",
+  "description": "FPL League Standings Viewer",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx http-server . -p 3000 -c-1",
+    "start": "npx http-server . -p 3000",
+    "build": "echo 'No build step needed for static HTML'"
+  },
+  "keywords": ["fpl", "fantasy-premier-league", "football"],
+  "author": "Nathan Jobson",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+} 
