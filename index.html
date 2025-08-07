@@ -660,6 +660,7 @@
             background: #f8f9fa;
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            cursor: pointer;
         }
 
         /* Mobile touch optimizations */
@@ -1330,10 +1331,13 @@
                 };
                 testImg.src = originalSrc;
                 
-                // Add click handler for profile picture popup
-                profileImg.addEventListener('click', function() {
+                // Add click handler for the entire row to open profile modal
+                row.addEventListener('click', function() {
                     openProfileModal(profileImg.src, managerName, teamName, player);
                 });
+                
+                // Add cursor pointer to indicate the row is clickable
+                row.style.cursor = 'pointer';
                 
                 leaderboardContent.appendChild(row);
             });
@@ -1401,8 +1405,8 @@
                         <div class="deadline-info">
                             <span class="deadline-label">⏰ Next Deadline:</span>
                             <span class="deadline-time">${formattedDeadline}</span>
-                            <a href="fpl://" class="fpl-app-link" onclick="openFPLApp()">
-                                📱 Open Official FPL App
+                            <a href="#" class="fpl-app-link" onclick="openFPLApp()">
+                                📱 Open Premier League App
                             </a>
                         </div>
                     `;
@@ -1415,8 +1419,8 @@
                         <div class="deadline-info">
                             <span class="deadline-label">⏰ Next Deadline:</span>
                             <span class="deadline-time">${formattedDeadline}</span>
-                            <a href="fpl://" class="fpl-app-link" onclick="openFPLApp()">
-                                📱 Open FPL App
+                            <a href="#" class="fpl-app-link" onclick="openFPLApp()">
+                                📱 Open Premier League App
                             </a>
                         </div>
                     `;
@@ -1469,27 +1473,41 @@
         }
 
         function openFPLApp() {
-            // Try to open the FPL app
+            // Premier League app URL schemes
+            const premierLeagueAppUrl = 'premierleague://';
             const fplAppUrl = 'fpl://';
             const fplWebUrl = 'https://fantasy.premierleague.com/';
             
-            // Create a hidden iframe to test if the app is installed
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            iframe.src = fplAppUrl;
+            // Check if we're on a mobile device
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             
-            // Add to page temporarily
-            document.body.appendChild(iframe);
-            
-            // Remove after a short delay
-            setTimeout(() => {
-                document.body.removeChild(iframe);
-            }, 1000);
-            
-            // Fallback to web version after a delay
-            setTimeout(() => {
+            if (isMobile) {
+                // Try to open the Premier League app first
+                const appUrl = premierLeagueAppUrl;
+                
+                // Create a hidden iframe to attempt to open the app
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.src = appUrl;
+                
+                // Add to page temporarily
+                document.body.appendChild(iframe);
+                
+                // Remove after a short delay
+                setTimeout(() => {
+                    if (document.body.contains(iframe)) {
+                        document.body.removeChild(iframe);
+                    }
+                }, 1000);
+                
+                // Fallback to web version after a delay
+                setTimeout(() => {
+                    window.open(fplWebUrl, '_blank');
+                }, 500);
+            } else {
+                // On desktop, just open the web version
                 window.open(fplWebUrl, '_blank');
-            }, 500);
+            }
             
             return false; // Prevent default link behavior
         }
