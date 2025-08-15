@@ -1043,7 +1043,7 @@
                 <div class="last-updated" id="lastUpdated"></div>
                 <div class="auto-refresh">
                     <span class="live-indicator"></span>
-                    Live data - Auto-refreshing every 5 minutes
+                    <span id="refreshMessage">Live data - Auto-refreshing every 5 minutes</span>
                     <button onclick="refreshLiveData()" style="margin-left: 15px; padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">🔄 Refresh Now</button>
                 </div>
             </div>
@@ -1152,7 +1152,8 @@
                 // Calculate live standings with live data (or fallback)
                 let liveStandings;
                 try {
-                    liveStandings = await calculateLiveStandings(leagueData, liveData);
+                    const currentGameweek = getCurrentGameweek(gameweekData);
+                    liveStandings = await calculateLiveStandings(leagueData, liveData, currentGameweek);
                 } catch (error) {
                     // If live calculation fails, use the basic league data
                     liveStandings = leagueData;
@@ -1161,7 +1162,8 @@
                 displayLeagueData(liveStandings);
                 displayGameweekInfo(gameweekData);
                 currentLeagueId = leagueId;
-                startAutoRefresh();
+                
+                // Don't start auto-refresh here - let displayLeagueData handle it based on actual live status
             } catch (error) {
                 console.error('Error loading league:', error);
                 showError('Failed to load league data. Please check the League ID and try again.');
@@ -1346,7 +1348,7 @@
             return currentEvent ? currentEvent.id : 1;
         }
 
-        async function calculateLiveStandings(leagueData, liveData) {
+        async function calculateLiveStandings(leagueData, liveData, currentGameweek) {
             if (!leagueData) {
                 throw new Error('No league data available');
             }
@@ -1383,6 +1385,18 @@
             
             for (const team of teams) {
                 try {
+                    // Handle the new FPL API structure where player_name is provided instead of separate first/last names
+                    let playerFirstName, playerLastName;
+                    if (team.player_name) {
+                        const nameParts = team.player_name.trim().split(' ');
+                        playerFirstName = nameParts[0] || '';
+                        playerLastName = nameParts.slice(1).join(' ') || '';
+                    } else {
+                        // Fallback to old fields if they exist
+                        playerFirstName = team.player_first_name || '';
+                        playerLastName = team.player_last_name || '';
+                    }
+                    
                     // Get team picks for current gameweek
                     const teamPicks = await fetchTeamPicks(team.entry);
                     
@@ -1423,20 +1437,32 @@
                     // Calculate total points - handle both live and finalized scenarios
                     let totalPoints;
                     
-                    if (liveData && liveData.elements) {
-                        // Games are still live or recently finished - use our calculated live score
-                        // The FPL API might not have updated the total yet, so we calculate it ourselves
-                        const existingTotal = team.total || 0;
-                        const existingGameweekPoints = team.gameweek_points || 0;
-                        totalPoints = existingTotal - existingGameweekPoints + liveGameweekScore;
+                    // Check if this is a new gameweek (GW 1) or if we're in a later gameweek
+                    const isFirstGameweek = currentGameweek === 1;
+                    
+                    // Check if the FPL API has already updated the official totals
+                    // For GW 1: if team.total > 0, the API has finalized the data
+                    // For later GWs: if team.total includes current GW points, the API has finalized the data
+                    const apiHasUpdatedTotals = isFirstGameweek ? 
+                        (team.total > 0) : 
+                        (team.total > 0 && team.gameweek_points > 0);
+                    
+                    if (apiHasUpdatedTotals) {
+                        // FPL API has already updated the official totals - use them
+                        totalPoints = team.total;
+                    } else if (isFirstGameweek) {
+                        // First gameweek and API hasn't updated totals yet - use live score as total
+                        totalPoints = liveGameweekScore;
                     } else {
-                        // No live data available - games are finalized and FPL API has updated totals
-                        // Use the official FPL API total (which includes the finalized gameweek)
-                        totalPoints = team.total || 0;
+                        // Later gameweeks and API hasn't updated totals yet - calculate by adding live score to previous total
+                        const previousTotal = team.total - (team.gameweek_points || 0);
+                        totalPoints = previousTotal + liveGameweekScore;
                     }
                     
                     liveStandings.push({
                         ...team,
+                        player_first_name: playerFirstName,
+                        player_last_name: playerLastName,
                         total: totalPoints,
                         gameweek_points: team.gameweek_points || 0,
                         live_gameweek_points: liveGameweekScore,
@@ -1461,6 +1487,8 @@
             
             // Sort by total points
             liveStandings.sort((a, b) => (b.total || 0) - (a.total || 0));
+            
+
             
             return liveStandings;
         }
@@ -1585,6 +1613,9 @@
                 preSeasonMsg.style.cssText = 'text-align: center; padding: 15px; background: linear-gradient(135deg, #6f42c1 0%, #8e44ad 100%); color: white; border-radius: 10px; margin-bottom: 20px; font-weight: 600; box-shadow: 0 4px 15px rgba(111, 66, 193, 0.3);';
                 preSeasonMsg.innerHTML = `🟣 <strong>PRE-SEASON LEAGUE - Gameweek ${currentGameweek}</strong> - Teams have joined but season hasn't started yet. Live scoring will activate when games begin.`;
                 leaderboardContent.appendChild(preSeasonMsg);
+                
+                // Start auto-refresh for pre-season (5 minutes)
+                startAutoRefresh(5);
             } else if (isLiveData) {
                 const liveStatusMsg = document.createElement('div');
                 liveStatusMsg.style.cssText = 'text-align: center; padding: 15px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border-radius: 10px; margin-bottom: 20px; font-weight: 600; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);';
@@ -1603,13 +1634,19 @@
                     liveGamesStatus = ' - 📡 Checking game status...';
                 }
                 
-                liveStatusMsg.innerHTML = `🟢 <strong>LIVE SCORES ACTIVE - Gameweek ${currentGameweek}</strong>${liveGamesStatus} - Real-time points updating as games progress`;
+                liveStatusMsg.innerHTML = `🟢 <strong>LIVE SCORES ACTIVE - Gameweek ${currentGameweek}</strong>${liveGamesStatus} - Real-time points updating every 60 seconds as games progress`;
                 leaderboardContent.appendChild(liveStatusMsg);
+                
+                // Start auto-refresh for live games (1 minute)
+                startAutoRefresh(1);
             } else {
                 const fallbackMsg = document.createElement('div');
                 fallbackMsg.style.cssText = 'text-align: center; padding: 15px; background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%); color: white; border-radius: 10px; margin-bottom: 20px; font-weight: 600; box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);';
-                fallbackMsg.innerHTML = `🟡 <strong>FINALIZED SCORES - Gameweek ${currentGameweek}</strong> - Games completed, showing official FPL API totals`;
+                fallbackMsg.innerHTML = `🟡 <strong>FINALIZED SCORES - Gameweek ${currentGameweek}</strong> - Games completed, showing official FPL API totals. Refreshing every 5 minutes.`;
                 leaderboardContent.appendChild(fallbackMsg);
+                
+                // Start auto-refresh for finalized scores (5 minutes)
+                startAutoRefresh(5);
             }
 
 
@@ -1810,16 +1847,27 @@
             }
         }
 
-        function startAutoRefresh() {
+        function startAutoRefresh(intervalMinutes = 5) {
             if (refreshInterval) {
                 clearInterval(refreshInterval);
             }
             
+            const intervalMs = intervalMinutes * 60 * 1000;
             refreshInterval = setInterval(() => {
                 if (currentLeagueId) {
                     loadLeague();
                 }
-            }, 5 * 60 * 1000); // Refresh every 5 minutes
+            }, intervalMs);
+            
+            // Update the refresh message at the bottom of the page
+            const refreshMessage = document.getElementById('refreshMessage');
+            if (refreshMessage) {
+                if (intervalMinutes === 1) {
+                    refreshMessage.innerHTML = 'Live data - Auto-refreshing every 60 seconds';
+                } else {
+                    refreshMessage.innerHTML = `Live data - Auto-refreshing every ${intervalMinutes} minutes`;
+                }
+            }
         }
 
         function refreshLiveData() {
@@ -2151,7 +2199,7 @@
                     
                     // Show formation
                     if (detailedData.picks) {
-                        const formation = calculateFormation(detailedData.picks);
+                        const formation = calculateFormation(detailedData.picks, playerInfo);
                         teamInfo.push({ label: 'Formation', value: formation });
                     }
                     
@@ -2192,13 +2240,20 @@
             return teamInfo;
         }
 
-        // Calculate formation from picks
-        function calculateFormation(picks) {
+        // Calculate formation from picks (only starting XI, positions 1-11)
+        function calculateFormation(picks, playerInfo) {
             const positions = { 1: 0, 2: 0, 3: 0, 4: 0 }; // GK, DEF, MID, FWD
             
+            // Only count starting XI players (positions 1-11)
             picks.forEach(pick => {
-                if (pick.position_id <= 4) {
-                    positions[pick.position_id]++;
+                if (pick.position <= 11) { // Only starting XI
+                    const player = playerInfo.elements.find(p => p.id === pick.element);
+                    if (player) {
+                        const positionType = player.element_type; // 1=GK, 2=DEF, 3=MID, 4=FWD
+                        if (positionType >= 1 && positionType <= 4) {
+                            positions[positionType]++;
+                        }
+                    }
                 }
             });
             
@@ -2233,8 +2288,8 @@
             }
             console.log('=== END DEBUG ===');
             
-            // Switch to single column layout for squad display
-            statsGrid.classList.add('squad-mode');
+            // Switch to formation layout
+            statsGrid.classList.add('formation-mode');
             
             // Add a separator
             const separator = document.createElement('div');
@@ -2244,137 +2299,118 @@
             // Add squad header
             const squadHeader = document.createElement('div');
             squadHeader.style.cssText = 'grid-column: 1 / -1; font-weight: 600; color: #007bff; margin-bottom: 10px; text-align: center;';
-            squadHeader.innerHTML = '🏃‍♂️ CURRENT SQUAD';
+            squadHeader.innerHTML = '⚽ FORMATION VIEW';
             statsGrid.appendChild(squadHeader);
             
             // Group picks by squad position (1-15)
-            const squadSections = {
-                starting: { name: '🏟️ STARTING XI', picks: [] },
-                bench: { name: '🪑 BENCH', picks: [] }
-            };
+            const startingXI = picks.filter(pick => pick.position <= 11);
+            const bench = picks.filter(pick => pick.position > 11);
             
-            picks.forEach(pick => {
-                // FPL API uses 'position' field for squad order (1-15)
-                if (pick.position <= 11) {
-                    squadSections.starting.picks.push(pick);
-                } else {
-                    squadSections.bench.picks.push(pick);
+            // Calculate formation for starting XI
+            const formation = calculateFormation(picks, playerInfo);
+            
+            // Create formation layout container
+            const formationContainer = document.createElement('div');
+            formationContainer.style.cssText = `
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                margin: 15px auto;
+                padding: 15px;
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                border-radius: 12px;
+                border: 2px solid #dee2e6;
+                width: 100%;
+                max-width: 500px;
+            `;
+            
+            // Add formation label
+            const formationLabel = document.createElement('div');
+            formationLabel.style.cssText = 'grid-column: 1 / -1; text-align: center; font-weight: bold; color: #495057; margin-bottom: 10px; font-size: 14px;';
+            formationLabel.innerHTML = `Formation: ${formation}`;
+            formationContainer.appendChild(formationLabel);
+            
+            // Create pitch layout
+            const pitchLayout = document.createElement('div');
+            pitchLayout.style.cssText = `
+                display: grid;
+                grid-template-columns: repeat(5, 1fr);
+                gap: 6px;
+                align-items: center;
+                min-height: 120px;
+                width: 100%;
+                max-width: 400px;
+                margin: 0 auto;
+                justify-items: center;
+            `;
+            
+            // Position players in formation
+            let currentDef = 0;
+            let currentMid = 0;
+            let currentFwd = 0;
+            
+            startingXI.forEach(pick => {
+                const player = playerInfo.elements.find(p => p.id === pick.element);
+                if (player) {
+                    const playerCard = createPlayerCard(player, pick, liveData);
+                    
+                    // Position based on formation
+                    if (player.element_type === 1) { // GK
+                        playerCard.style.gridColumn = '3';
+                        playerCard.style.gridRow = '4';
+                    } else if (player.element_type === 2) { // DEF
+                        const col = currentDef < 2 ? 2 : (currentDef < 4 ? 4 : 3);
+                        const row = currentDef < 2 ? 3 : (currentDef < 4 ? 3 : 2);
+                        playerCard.style.gridColumn = col;
+                        playerCard.style.gridRow = row;
+                        currentDef++;
+                    } else if (player.element_type === 3) { // MID
+                        const col = currentMid < 2 ? 1 : (currentMid < 4 ? 5 : 3);
+                        const row = currentMid < 2 ? 2 : (currentMid < 4 ? 2 : 1);
+                        playerCard.style.gridColumn = col;
+                        playerCard.style.gridRow = row;
+                        currentMid++;
+                    } else if (player.element_type === 4) { // FWD
+                        const col = currentFwd < 2 ? 2 : 4;
+                        const row = 1;
+                        playerCard.style.gridColumn = col;
+                        playerCard.style.gridRow = row;
+                        currentFwd++;
+                    }
+                    
+                    pitchLayout.appendChild(playerCard);
                 }
             });
             
-            // Display starting XI
-            if (squadSections.starting.picks.length > 0) {
-                const startingHeader = document.createElement('div');
-                startingHeader.className = 'squad-position-header';
-                startingHeader.textContent = squadSections.starting.name;
-                statsGrid.appendChild(startingHeader);
-                
-                squadSections.starting.picks.forEach(pick => {
-                    const player = playerInfo.elements.find(p => p.id === pick.element);
-                    if (player) {
-                        const playerItem = document.createElement('div');
-                        playerItem.className = 'squad-player-item';
-                        
-                        const playerName = player.web_name;
-                        const playerPosition = player.element_type === 1 ? 'GK' : 
-                                            player.element_type === 2 ? 'DEF' : 
-                                            player.element_type === 3 ? 'MID' : 'FWD';
-                        
-                        const playerDetails = document.createElement('div');
-                        playerDetails.className = 'squad-player-details';
-                        
-                        let details = [];
-                        details.push(playerPosition);
-                        if (pick.is_captain) details.push('👑 C');
-                        if (pick.is_vice_captain) details.push('👑 VC');
-                        if (pick.multiplier > 1) details.push(`×${pick.multiplier}`);
-                        
-                        playerDetails.innerHTML = details.join(' ');
-                        
-                        // Get live score for this player and apply multiplier (including bonus points)
-                        const livePlayerStats = liveData ? liveData.elements.find(p => p.id === pick.element)?.stats : null;
-                        const baseScore = livePlayerStats ? livePlayerStats.total_points || 0 : 0;
-                        const bonusPoints = livePlayerStats ? livePlayerStats.bonus || 0 : 0;
-                        const multipliedScore = baseScore * pick.multiplier;
-                        
-                        // Show bonus points if they exist
-                        const bonusDisplay = bonusPoints > 0 ? ` (+${bonusPoints} bonus)` : '';
-                        
-                        playerItem.innerHTML = `
-                            <span class="squad-player-name">${playerName}</span>
-                            <div class="squad-player-details">
-                                <span class="live-score" style="color: #28a745; font-weight: bold; margin-right: 8px;">${multipliedScore} pts${bonusDisplay}</span>
-                                ${playerDetails.innerHTML}
-                            </div>
-                        `;
-                        
-                        statsGrid.appendChild(playerItem);
-                    }
-                });
-            }
+            formationContainer.appendChild(pitchLayout);
+            statsGrid.appendChild(formationContainer);
             
-            // Display bench
-            if (squadSections.bench.picks.length > 0) {
+                        // Add bench section (compact)
+            if (bench.length > 0) {
                 const benchHeader = document.createElement('div');
-                benchHeader.className = 'squad-position-header';
-                benchHeader.textContent = squadSections.bench.name;
+                benchHeader.style.cssText = 'grid-column: 1 / -1; font-weight: 600; color: #6c757d; margin: 15px 0 10px 0; text-align: center; font-size: 14px;';
+                benchHeader.innerHTML = '🪑 BENCH';
                 statsGrid.appendChild(benchHeader);
                 
-                squadSections.bench.picks.forEach(pick => {
+                const benchContainer = document.createElement('div');
+                benchContainer.style.cssText = 'display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 0 auto 15px auto; width: 100%; max-width: 320px; justify-items: center;';
+                
+                bench.forEach(pick => {
                     const player = playerInfo.elements.find(p => p.id === pick.element);
                     if (player) {
-                        const playerItem = document.createElement('div');
-                        playerItem.className = 'squad-player-item';
-                        
-                        const playerName = player.web_name;
-                        const playerPosition = player.element_type === 1 ? 'GK' : 
-                                            player.element_type === 2 ? 'DEF' : 
-                                            player.element_type === 3 ? 'MID' : 'FWD';
-                        
-                        const playerDetails = document.createElement('div');
-                        playerDetails.className = 'squad-player-details';
-                        
-                        let details = [];
-                        details.push(playerPosition);
-                        if (pick.is_captain) details.push('👑 C');
-                        if (pick.is_vice_captain) details.push('👑 VC');
-                        if (pick.multiplier > 1) details.push(`×${pick.multiplier}`);
-                        
-                        playerDetails.innerHTML = details.join(' ');
-                        
-                        // Get live score for this player and apply multiplier (including bonus points)
-                        const livePlayerStats = liveData ? liveData.elements.find(p => p.id === pick.element)?.stats : null;
-                        const baseScore = livePlayerStats ? livePlayerStats.total_points || 0 : 0;
-                        const bonusPoints = livePlayerStats ? livePlayerStats.bonus || 0 : 0;
-                        const multipliedScore = baseScore * pick.multiplier;
-                        
-                        // Show bonus points if they exist
-                        const bonusDisplay = bonusPoints > 0 ? ` (+${bonusPoints} bonus)` : '';
-                        
-                        playerItem.innerHTML = `
-                            <span class="squad-player-name">${playerName}</span>
-                            <div class="squad-player-details">
-                                <span class="live-score" style="color: #28a745; font-weight: bold; margin-right: 8px;">${multipliedScore} pts${bonusDisplay}</span>
-                                ${playerDetails.innerHTML}
-                            </div>
-                        `;
-                        
-                        statsGrid.appendChild(playerItem);
+                        const benchCard = createPlayerCard(player, pick, liveData, true);
+                        benchContainer.appendChild(benchCard);
                     }
                 });
+                
+                statsGrid.appendChild(benchContainer);
             }
             
-            // Add total points summary
-            const totalSeparator = document.createElement('div');
-            totalSeparator.style.cssText = 'grid-column: 1 / -1; border-top: 1px solid #e9ecef; margin: 15px 0; padding-top: 15px;';
-            statsGrid.appendChild(totalSeparator);
+            // Add total points summary (compact)
+            const totalContainer = document.createElement('div');
+            totalContainer.style.cssText = 'grid-column: 1 / -1; text-align: center; margin: 15px 0;';
             
-            const totalHeader = document.createElement('div');
-            totalHeader.style.cssText = 'grid-column: 1 / -1; font-weight: 600; color: #28a745; margin-bottom: 10px; text-align: center; font-size: 16px;';
-            totalHeader.innerHTML = '📊 SQUAD TOTAL';
-            statsGrid.appendChild(totalHeader);
-            
-            // Calculate total points from all players (including bonus points)
+            // Calculate totals
             let totalPoints = 0;
             let totalBonusPoints = 0;
             picks.forEach(pick => {
@@ -2384,25 +2420,62 @@
                 const multipliedScore = baseScore * pick.multiplier;
                 totalPoints += multipliedScore;
                 totalBonusPoints += bonusPoints;
-                
-                // DEBUG: Log each player's contribution to total
-                console.log(`Total calc - Player ${pick.element}: base=${baseScore}, bonus=${bonusPoints}, multiplier=${pick.multiplier}, contribution=${multipliedScore}`);
             });
             
-            console.log(`=== FINAL TOTALS ===`);
-            console.log(`Total Points: ${totalPoints}`);
-            console.log(`Total Bonus Points: ${totalBonusPoints}`);
-            console.log(`=== END FINAL TOTALS ===`);
-            
-            const totalDisplay = document.createElement('div');
-            totalDisplay.style.cssText = 'grid-column: 1 / -1; text-align: center; font-size: 18px; font-weight: bold; color: #28a745; padding: 10px; background: #f8f9fa; border-radius: 8px; margin: 10px 0;';
-            
-            // Show bonus points in total if they exist
-            const bonusDisplay = totalBonusPoints > 0 ? ` (includes ${totalBonusPoints} bonus pts)` : '';
-            totalDisplay.innerHTML = `🏆 <strong>${totalPoints} POINTS</strong>${bonusDisplay} 🏆`;
-            statsGrid.appendChild(totalDisplay);
+            const bonusDisplay = totalBonusPoints > 0 ? ` (${totalBonusPoints} bonus)` : '';
+            totalContainer.innerHTML = `
+                <div style="font-size: 18px; font-weight: bold; color: #28a745; padding: 10px; background: #f8f9fa; border-radius: 8px; border: 2px solid #28a745;">
+                    🏆 <strong>${totalPoints} POINTS</strong>${bonusDisplay} 🏆
+                </div>
+            `;
+            statsGrid.appendChild(totalContainer);
             
 
+        }
+        
+        // Helper function to create player cards
+        function createPlayerCard(player, pick, liveData, isBench = false) {
+            const card = document.createElement('div');
+            card.style.cssText = `
+                background: ${isBench ? '#f8f9fa' : '#ffffff'};
+                border: 2px solid ${isBench ? '#dee2e6' : '#007bff'};
+                border-radius: 8px;
+                padding: 8px;
+                text-align: center;
+                font-size: 11px;
+                min-height: ${isBench ? '60px' : '80px'};
+                width: 70px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            `;
+            
+            const playerName = player.web_name;
+            const playerPosition = player.element_type === 1 ? 'GK' : 
+                                player.element_type === 2 ? 'DEF' : 
+                                player.element_type === 3 ? 'MID' : 'FWD';
+            
+            // Get live score
+            const livePlayerStats = liveData ? liveData.elements.find(p => p.id === pick.element)?.stats : null;
+            const baseScore = livePlayerStats ? livePlayerStats.total_points || 0 : 0;
+            const bonusPoints = livePlayerStats ? livePlayerStats.bonus || 0 : 0;
+            const multipliedScore = baseScore * pick.multiplier;
+            const bonusDisplay = bonusPoints > 0 ? ` (+${bonusPoints})` : '';
+            
+            // Captain/Vice-captain indicators
+            let captainIndicator = '';
+            if (pick.is_captain) captainIndicator = '👑';
+            else if (pick.is_vice_captain) captainIndicator = '👑';
+            
+            card.innerHTML = `
+                <div style="font-weight: bold; color: #495057; margin-bottom: 2px;">${playerName}</div>
+                <div style="color: #6c757d; font-size: 10px; margin-bottom: 2px;">${playerPosition}</div>
+                <div style="color: #28a745; font-weight: bold; font-size: 12px;">${multipliedScore} pts${bonusDisplay}</div>
+                <div style="color: #dc3545; font-size: 10px;">${captainIndicator}</div>
+            `;
+            
+            return card;
         }
 
         async function displayFPLTeamInfo(player) {
