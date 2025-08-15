@@ -1,0 +1,2816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FPL League - Live Standings</title>
+    
+    <!-- Web App Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ruxley FPL">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#007bff">
+    <meta name="msapplication-TileColor" content="#007bff">
+    
+    <!-- App Icons -->
+    <link rel="icon" type="image/x-icon" href="favicons/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="favicons/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="favicons/favicon-96x96.png">
+    <link rel="apple-touch-icon" href="favicons/apple-touch-icon.png">
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-image: url('background.png');
+            background-repeat: repeat;
+            background-size: auto;
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0;
+            text-align: center;
+        }
+
+        .header-container {
+            position: relative;
+            width: 100%;
+        }
+
+        .header-image {
+            max-width: 100%;
+            height: auto;
+            margin: 0;
+            loading: lazy;
+            transition: opacity 1s ease-in-out;
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            display: block;
+        }
+
+        .header-image.active {
+            opacity: 1;
+            position: relative;
+            z-index: 1;
+        }
+
+        .content {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 10px;
+            margin-top: 0px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            position: relative;
+            z-index: 10;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .league-input {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+
+        .league-input input {
+            padding: 10px 15px;
+            border: 2px solid #007bff;
+            border-radius: 5px;
+            font-size: 16px;
+            width: 200px;
+            margin-right: 10px;
+        }
+
+        .league-input button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .league-input button:hover {
+            background: #0056b3;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 18px;
+            position: relative;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            display: inline-block;
+            animation: loadingAnimation 3s ease-in-out infinite;
+            background: linear-gradient(45deg, #007bff, #28a745, #ffc107, #dc3545);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 600;
+        }
+
+        @keyframes loadingAnimation {
+            0% { 
+                opacity: 1;
+                background-position: 0% 50%;
+                transform: scale(1);
+            }
+            25% { 
+                opacity: 0.8;
+                background-position: 25% 50%;
+                transform: scale(1.05);
+            }
+            50% { 
+                opacity: 1;
+                background-position: 50% 50%;
+                transform: scale(1);
+            }
+            75% { 
+                opacity: 0.8;
+                background-position: 75% 50%;
+                transform: scale(1.05);
+            }
+            100% { 
+                opacity: 1;
+                background-position: 100% 50%;
+                transform: scale(1);
+            }
+        }
+
+        .loading-subtitle {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #6c757d;
+            font-style: italic;
+            font-weight: bold;
+            opacity: 0.8;
+            animation: subtitleFade 2s ease-in-out infinite;
+        }
+
+        @keyframes subtitleFade {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .error {
+            text-align: center;
+            padding: 20px;
+            color: #dc3545;
+            background: #f8d7da;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .leaderboard {
+            margin-top: 20px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .leaderboard h2 {
+            text-align: center;
+            margin: 0;
+            padding: 25px 20px 20px;
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .leaderboard-header {
+            display: grid;
+            grid-template-columns: 60px 70px 1fr 100px 1fr;
+            gap: 15px;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            font-weight: 600;
+            color: #6c757d;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            align-items: center;
+        }
+
+        .leaderboard-row {
+            display: grid;
+            grid-template-columns: 60px 70px 1fr 100px 1fr;
+            gap: 15px;
+            padding: 18px 20px;
+            align-items: center;
+            border-bottom: 1px solid #f1f3f4;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        .profile-picture {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #e9ecef;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+        }
+
+        .profile-picture:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            cursor: pointer;
+        }
+
+        /* Modal overlay for profile picture popup */
+        .profile-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        /* Debug: Make sure modal is visible when shown */
+        .profile-modal.show {
+            display: block !important;
+        }
+
+        .profile-modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 90%;
+            max-height: 90%;
+        }
+
+        .profile-modal-image {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #007bff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            margin-bottom: 15px;
+        }
+
+        .profile-modal-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .profile-modal-team {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .profile-modal-stats {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            border: 1px solid #e9ecef;
+        }
+
+        .profile-modal-stats h4 {
+            margin: 0 0 10px 0;
+            color: #007bff;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .profile-modal-stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            text-align: left;
+        }
+
+        .profile-modal-stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .profile-modal-stat-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Enhanced styling for team squad display */
+        .profile-modal-stat-item.captain {
+            font-weight: bold;
+            color: #007bff;
+            background: rgba(0, 123, 255, 0.1);
+        }
+
+        .profile-modal-stat-item.bench {
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .profile-modal-stat-item.header {
+            font-weight: bold;
+            border-bottom: 2px solid #007bff;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+        }
+
+        .profile-modal-stat-item.summary {
+            font-weight: bold;
+            border-top: 2px solid #007bff;
+            margin-top: 10px;
+            padding-top: 8px;
+        }
+
+        .profile-modal-stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .profile-modal-stat-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .profile-modal-close {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        .profile-modal-close:hover {
+            background: #0056b3;
+        }
+
+        /* Mobile responsive for modal */
+        @media (max-width: 768px) {
+            .profile-modal-content {
+                padding: 15px;
+                margin: 20px;
+            }
+
+            .profile-modal-image {
+                width: 150px;
+                height: 150px;
+            }
+
+            .profile-modal-name {
+                font-size: 16px;
+            }
+
+            .profile-modal-team {
+                font-size: 12px;
+            }
+        }
+
+        /* Mobile leaderboard layout */
+        @media (max-width: 768px) {
+            .leaderboard-header {
+                display: none; /* Hide header on mobile */
+            }
+
+            .leaderboard-row {
+                display: grid;
+                grid-template-columns: 40px 35px 1fr 60px 1fr;
+                gap: 8px;
+                padding: 12px 15px;
+                align-items: center;
+                border-bottom: 1px solid #f1f3f4;
+                background: white;
+            }
+
+            .profile-picture {
+                width: 30px;
+                height: 30px;
+                border-radius: 50%;
+                object-fit: cover;
+                border: 2px solid #e9ecef;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            }
+
+            .position {
+                font-size: 16px;
+                font-weight: 700;
+                text-align: center;
+                color: #495057;
+                min-width: 30px;
+            }
+
+            .player-info {
+                display: block;
+                text-align: left;
+            }
+
+            .player-name {
+                font-size: 14px;
+                font-weight: 600;
+                color: #333;
+                margin-bottom: 2px;
+                line-height: 1.2;
+            }
+
+            .team-name {
+                font-size: 12px;
+                color: #666;
+                line-height: 1.2;
+            }
+
+            .total-points {
+                font-size: 16px;
+                font-weight: 700;
+                color: #28a745;
+                text-align: left;
+            }
+
+            .stats {
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 4px;
+                text-align: center;
+            }
+
+            .stat-item {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 2px;
+            }
+
+            .stat-label {
+                font-size: 8px;
+                color: #6c757d;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                font-weight: 500;
+            }
+
+            .stat-value {
+                font-size: 12px;
+                font-weight: 700;
+                color: #007bff;
+            }
+        }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .container {
+                max-width: 100%;
+                padding: 0 10px;
+            }
+
+            .content {
+                padding: 20px 15px;
+                margin-top: -5px;
+            }
+
+            h1 {
+                font-size: 24px;
+                margin-bottom: 15px;
+            }
+
+            .leaderboard h2 {
+                font-size: 20px;
+                padding: 20px 15px 15px;
+            }
+
+            .leaderboard-header {
+                grid-template-columns: 40px 35px 1fr 80px 1fr;
+                gap: 8px;
+                padding: 12px 15px;
+                font-size: 12px;
+            }
+
+            .leaderboard-row {
+                grid-template-columns: 40px 35px 1fr 80px 1fr;
+                gap: 8px;
+                padding: 15px;
+            }
+
+            .position {
+                font-size: 16px;
+                min-width: 30px;
+            }
+
+            .team-name {
+                font-size: 16px;
+                margin-bottom: 2px;
+            }
+
+            .manager-name {
+                font-size: 12px;
+            }
+
+            .points {
+                font-size: 16px;
+            }
+
+            .stats {
+                gap: 6px;
+            }
+
+            .stat-value {
+                font-size: 14px;
+            }
+
+            .stat-label {
+                font-size: 8px;
+            }
+
+            .leaderboard-key {
+                padding: 12px 15px;
+                margin-bottom: 15px;
+            }
+
+            .key-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .key-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+
+            .key-label {
+                min-width: auto;
+            }
+
+            .last-updated {
+                font-size: 12px;
+                padding: 12px;
+                margin-top: 15px;
+            }
+
+            .auto-refresh {
+                font-size: 11px;
+                padding: 8px;
+                margin-top: 8px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 5px;
+            }
+
+            .content {
+                padding: 15px 10px;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+
+            .leaderboard h2 {
+                font-size: 18px;
+                padding: 15px 10px 10px;
+            }
+
+            .leaderboard-header {
+                grid-template-columns: 35px 30px 1fr 70px 1fr;
+                gap: 6px;
+                padding: 10px;
+                font-size: 11px;
+            }
+
+            .leaderboard-row {
+                grid-template-columns: 35px 30px 1fr 70px 1fr;
+                gap: 6px;
+                padding: 12px 10px;
+            }
+
+            .position {
+                font-size: 14px;
+                min-width: 25px;
+            }
+
+            .team-name {
+                font-size: 14px;
+            }
+
+            .manager-name {
+                font-size: 11px;
+            }
+
+            .points {
+                font-size: 14px;
+            }
+
+            .stats {
+                gap: 4px;
+            }
+
+            .stat-value {
+                font-size: 12px;
+            }
+
+            .stat-label {
+                font-size: 7px;
+            }
+
+            .leaderboard-key {
+                padding: 10px;
+                margin-bottom: 12px;
+            }
+
+            .leaderboard-key h3 {
+                font-size: 14px;
+            }
+
+            .key-item {
+                gap: 2px;
+            }
+
+            .key-description {
+                font-size: 12px;
+            }
+        }
+
+        .leaderboard-row:hover {
+            background: #f8f9fa;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            cursor: pointer;
+        }
+
+        /* Mobile touch optimizations */
+        @media (max-width: 768px) {
+            .leaderboard-row {
+                cursor: pointer;
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            .leaderboard-row:active {
+                background: #e9ecef;
+                transform: scale(0.98);
+            }
+
+            /* Improve text readability on mobile */
+            .player-name {
+                word-break: break-word;
+                hyphens: auto;
+            }
+
+            .team-name {
+                word-break: break-word;
+            }
+
+            /* Better spacing for mobile */
+            .leaderboard {
+                margin-top: 15px;
+                border-radius: 10px;
+            }
+
+            /* Optimize header image for mobile */
+            .header-image {
+                max-width: 100%;
+                height: auto;
+            }
+        }
+
+        .leaderboard-row:last-child {
+            border-bottom: none;
+        }
+
+        .position {
+            font-size: 20px;
+            font-weight: 700;
+            text-align: center;
+            color: #495057;
+            min-width: 40px;
+        }
+
+        .position.gold {
+            color: #FFD700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+        .position.silver {
+            color: #C0C0C0;
+            text-shadow: 0 0 10px rgba(192, 192, 192, 0.3);
+        }
+
+        .position.bronze {
+            color: #CD7F32;
+            text-shadow: 0 0 10px rgba(205, 127, 50, 0.3);
+        }
+
+        .leaderboard-key {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        .leaderboard-key h3 {
+            margin: 0 0 10px 0;
+            color: #495057;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .key-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .key-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .key-label {
+            font-weight: 600;
+            color: #007bff;
+            min-width: 30px;
+        }
+
+        .key-description {
+            color: #6c757d;
+        }
+
+        .player-name {
+            font-size: 16px;
+            font-weight: 500;
+            color: #2c3e50;
+            line-height: 1.4;
+        }
+
+        .team-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2c3e50;
+            line-height: 1.2;
+            margin-bottom: 4px;
+        }
+
+        .manager-name {
+            font-size: 14px;
+            font-weight: 400;
+            color: #6c757d;
+            line-height: 1.2;
+        }
+
+        .points {
+            font-size: 18px;
+            font-weight: 700;
+            color: #28a745;
+            text-align: center;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            text-align: center;
+            align-items: center;
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .stat-value {
+            font-weight: 700;
+            font-size: 16px;
+            color: #007bff;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+
+        .pre-season-message {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 500;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .last-updated {
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+            margin-top: 20px;
+            font-style: italic;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .auto-refresh {
+            text-align: center;
+            margin-top: 10px;
+            color: #007bff;
+            font-size: 12px;
+            font-weight: 500;
+            padding: 10px;
+            background: #e3f2fd;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .refresh-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: background-color 0.2s;
+            font-weight: 500;
+        }
+
+        .refresh-btn:hover {
+            background: #0056b3;
+        }
+
+        .refresh-btn:active {
+            background: #004085;
+        }
+
+        .gameweek-deadline {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            padding: 15px 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .deadline-info {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .deadline-label {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .deadline-time {
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .fpl-app-link {
+            color: white;
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .fpl-app-link:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .gameweek-deadline {
+                padding: 12px 15px;
+                margin: 10px 0;
+            }
+
+            .deadline-info {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .deadline-label {
+                font-size: 12px;
+            }
+
+            .deadline-time {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-container">
+            <img src="header2.png" alt="Ruxley FPL League Header" class="header-image active" id="header1">
+            <img src="header3.png" alt="Ruxley FPL League Header" class="header-image" id="header2">
+        </div>
+        
+        <div class="content">
+            <div id="loading" class="loading" style="display: none;">
+                <span class="loading-text">Loading Live Ruxley League data... Just a sec...</span>
+                <div class="loading-subtitle">Top Secret Pull data from The Premier League Script is © 2025 Nathan Jobson ;)</div>
+            </div>
+
+
+
+            <div id="error" class="error" style="display: none;">
+                Error loading league data. Please check the League ID and try again.
+            </div>
+
+            <div id="leaderboard" class="leaderboard" style="display: none;">
+                <h2>🏆 Ruxley FPL Leaderboard 2025/26</h2>
+                <div id="leaderboard-content"></div>
+                <div class="last-updated" id="lastUpdated"></div>
+                <div class="auto-refresh">
+                Auto-refreshing every 60 seconds
+                <button onclick="manualRefresh()" class="refresh-btn">🔄 Refresh Now</button>
+                <button onclick="manualRefreshLive()" class="refresh-btn" style="background: #28a745; margin-left: 10px;">🔄 Live Update</button>
+                <button onclick="testModal()" class="refresh-btn" style="background: #ffc107; margin-left: 10px;">🧪 Test Modal</button>
+                <button onclick="testAPIData()" class="refresh-btn" style="background: #17a2b8; margin-left: 10px;">🔍 Test API</button>
+                <button onclick="testRealTeam()" class="refresh-btn" style="background: #6f42c1; margin-left: 10px;">🎯 Test Real Team</button>
+            </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Picture Modal -->
+    <div id="profileModal" class="profile-modal">
+        <div class="profile-modal-content">
+            <img id="modalImage" src="" alt="" class="profile-modal-image">
+            <div id="modalName" class="profile-modal-name"></div>
+            <div id="modalTeam" class="profile-modal-team"></div>
+            <div id="modalStats" class="profile-modal-stats">
+                <h4>⚽ Current Team Squad</h4>
+                <div id="modalStatsGrid" class="profile-modal-stats-grid">
+                    <!-- Team squad will be populated by JavaScript -->
+                </div>
+            </div>
+            <button class="profile-modal-close" onclick="closeProfileModal()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        console.log('FPL League page loaded');
+        
+        let currentLeagueId = null;
+        let refreshInterval = null;
+        let nextDeadline = null;
+        
+        // Header image cycling
+        const headerImages = ['header2.png', 'header3.png', 'header4.png'];
+        let currentHeaderIndex = 1; // Start at 1 since we're already showing header2.png
+        let headerCycleInterval = null;
+
+        // FPL API Base URL
+        const FPL_API_BASE = 'https://fantasy.premierleague.com/api';
+
+        // Function to cycle through header images with crossfade
+        function cycleHeaderImage() {
+            const header1 = document.getElementById('header1');
+            const header2 = document.getElementById('header2');
+            
+            if (!header1 || !header2) return;
+            
+            // Determine which image is currently active
+            const activeHeader = header1.classList.contains('active') ? header1 : header2;
+            const inactiveHeader = header1.classList.contains('active') ? header2 : header1;
+            
+            // Update the inactive header with the next image
+            currentHeaderIndex = (currentHeaderIndex + 1) % headerImages.length;
+            const nextImage = headerImages[currentHeaderIndex];
+            
+            // Preload the image before switching
+            const img = new Image();
+            img.onload = function() {
+                inactiveHeader.src = nextImage;
+                inactiveHeader.alt = `Ruxley FPL League Header ${currentHeaderIndex + 1}`;
+                
+                // True crossfade effect - both images visible during transition
+                inactiveHeader.classList.add('active');
+                activeHeader.classList.remove('active');
+                
+                // After transition completes, reset the old header opacity and remove inline styles
+                setTimeout(() => {
+                    activeHeader.style.opacity = '';
+                }, 1000);
+            };
+            img.onerror = function() {
+                // Skip to next image if current one fails
+                currentHeaderIndex = (currentHeaderIndex + 1) % headerImages.length;
+            };
+            img.src = nextImage;
+        }
+
+        // Start header image cycling
+        function startHeaderCycling() {
+            if (headerCycleInterval) {
+                clearInterval(headerCycleInterval);
+            }
+            // Cycle every 4 seconds
+            headerCycleInterval = setInterval(cycleHeaderImage, 4000);
+        }
+
+        async function loadLeague() {
+            console.log('loadLeague function called');
+            const leagueId = '190589'; // Hardcoded league ID
+            console.log('League ID:', leagueId);
+            
+            showLoading();
+            hideError();
+            hideLeaderboard();
+
+            try {
+                // Load both league data and gameweek info
+                const [leagueData, gameweekData] = await Promise.all([
+                    fetchLeagueData(leagueId),
+                    fetchGameweekData()
+                ]);
+                
+                // Always show regular league data in this function (live standings are handled separately)
+                console.log('Showing regular league data');
+                displayLeagueData(leagueData);
+                displayGameweekInfo(gameweekData);
+                currentLeagueId = leagueId;
+                startAutoRefresh();
+            } catch (error) {
+                console.error('Error loading league:', error);
+                showError('Failed to load league data. Please check the League ID and try again.');
+            }
+        }
+
+        async function loadLiveStandings() {
+            console.log('loadLiveStandings function called');
+            const leagueId = '190589'; // Hardcoded league ID
+            
+            showLoading();
+            hideError();
+            hideLeaderboard();
+
+            try {
+                console.log('Calculating live standings...');
+                const liveStandings = await calculateLiveStandings(leagueId);
+                
+                // Display the live standings
+                displayLiveStandings(liveStandings);
+                currentLeagueId = leagueId;
+                
+                // Show success message
+                const loadingElement = document.getElementById('loading');
+                loadingElement.innerHTML = '<span style="color: #28a745;">✅ Live standings calculated successfully!</span>';
+                
+                setTimeout(() => {
+                    showLeaderboard();
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Error loading live standings:', error);
+                showError('Failed to calculate live standings. Please try again.');
+            }
+        }
+
+        async function fetchGameweekData() {
+            console.log('Fetching gameweek data');
+            
+            try {
+                // Try multiple CORS proxies as fallbacks (ordered by reliability)
+                const proxies = [
+                    'https://corsproxy.io/?',
+                    'https://api.allorigins.win/raw?url=',
+                    'https://cors-anywhere.herokuapp.com/',
+                    'https://thingproxy.freeboard.io/fetch/'
+                ];
+                
+                const fplUrl = 'https://fantasy.premierleague.com/api/bootstrap-static/';
+                let lastError = null;
+                
+                for (const proxy of proxies) {
+                    try {
+                        const fullUrl = proxy + encodeURIComponent(fplUrl);
+                        console.log('Trying proxy for gameweek data:', proxy);
+                        
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 10000);
+                        
+                        const response = await fetch(fullUrl, {
+                            method: 'GET',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            signal: controller.signal
+                        });
+                        
+                        clearTimeout(timeoutId);
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        
+                        const data = await response.json();
+                        console.log('Received gameweek data:', data);
+                        return data;
+                        
+                    } catch (error) {
+                        console.log(`Proxy ${proxy} failed for gameweek data:`, error.message);
+                        if (error.name === 'AbortError') {
+                            console.log(`Proxy ${proxy} timed out for gameweek data`);
+                        }
+                        lastError = error;
+                        continue;
+                    }
+                }
+                
+                throw lastError || new Error('All CORS proxies failed for gameweek data');
+                
+            } catch (error) {
+                console.log('Error fetching gameweek data:', error);
+                throw error;
+            }
+        }
+
+        // NEW FUNCTION: Calculate live standings by combining team picks with live player data
+        async function calculateLiveStandings(leagueId) {
+            console.log('Calculating live standings for league:', leagueId);
+            
+            try {
+                // Step 1: Get league teams
+                const leagueData = await fetchLeagueData(leagueId);
+                if (!leagueData.new_entries || leagueData.new_entries.results.length === 0) {
+                    throw new Error('No teams found in league');
+                }
+                
+                const teams = leagueData.new_entries.results;
+                console.log(`Found ${teams.length} teams`);
+                
+                // Step 2: Get live player data
+                const liveData = await fetchLivePlayerData();
+                if (!liveData.elements) {
+                    throw new Error('No live player data available');
+                }
+                
+                console.log(`Found live data for ${Object.keys(liveData.elements).length} players`);
+                
+                // Step 3: Calculate scores for each team
+                const teamScores = [];
+                
+                for (const team of teams) {
+                    try {
+                        // Get team picks for this gameweek
+                        const teamData = await fetchTeamPicks(team.entry);
+                        
+                        if (!teamData.picks) {
+                            console.log(`No picks data for ${team.entry_name}`);
+                            continue;
+                        }
+                        
+                        // Calculate current gameweek score from picks
+                        let currentGameweekScore = 0;
+                        let captainMultiplier = 1;
+                        let captainId = null;
+                        
+                        // First try to get live stats, but fall back to official data if live is stale
+                        let liveDataIsStale = true; // Assume live data is stale initially
+                        
+                        for (const pick of teamData.picks) {
+                            const playerId = pick.element;
+                            const multiplier = pick.multiplier;
+                            const isCaptain = pick.is_captain;
+                            
+                            // Get live stats for this player
+                            const livePlayer = liveData.elements[playerId];
+                            if (livePlayer && livePlayer.stats) {
+                                const playerPoints = livePlayer.stats.total_points || 0;
+                                const pointsWithMultiplier = playerPoints * multiplier;
+                                currentGameweekScore += pointsWithMultiplier;
+                                
+                                // If any player has points > 0, live data is not stale
+                                if (playerPoints > 0) {
+                                    liveDataIsStale = false;
+                                }
+                                
+                                if (isCaptain) {
+                                    captainId = playerId;
+                                    captainMultiplier = multiplier;
+                                }
+                            }
+                        }
+                        
+                        // Get team history for official points
+                        let previousGameweeksTotal = 0;
+                        let officialCurrentGameweekPoints = 0;
+                        
+                        try {
+                            const teamHistory = await fetchTeamHistory(team.entry);
+                            if (teamHistory && teamHistory.current) {
+                                // Get current gameweek official points
+                                const currentGW = teamHistory.current.find(gw => gw.event === getCurrentGameweek());
+                                if (currentGW) {
+                                    officialCurrentGameweekPoints = currentGW.points || 0;
+                                }
+                                
+                                // Sum up points from all previous gameweeks
+                                previousGameweeksTotal = teamHistory.current.reduce((total, gw) => {
+                                    // Only include completed gameweeks (not the current one)
+                                    if (gw.event < getCurrentGameweek()) {
+                                        return total + (gw.points || 0);
+                                    }
+                                    return total;
+                                }, 0);
+                            }
+                        } catch (error) {
+                            console.log(`Could not fetch history for ${team.entry_name}: ${error.message}`);
+                        }
+                        
+                        // Use live data if available, otherwise fall back to official data
+                        const finalCurrentGameweekPoints = liveDataIsStale ? officialCurrentGameweekPoints : currentGameweekScore;
+                        
+                        // Calculate cumulative total (previous gameweeks + current gameweek)
+                        const cumulativeTotal = previousGameweeksTotal + finalCurrentGameweekPoints;
+                        
+                        console.log(`${team.entry_name}: Live=${currentGameweekScore}, Official=${officialCurrentGameweekPoints}, Previous=${previousGameweeksTotal}, Total=${cumulativeTotal}, LiveStale=${liveDataIsStale}`);
+                        
+                        teamScores.push({
+                            entry: team.entry,
+                            entry_name: team.entry_name,
+                            player_first_name: team.player_first_name,
+                            player_last_name: team.player_last_name,
+                            current_gameweek_points: finalCurrentGameweekPoints,
+                            previous_gameweeks_total: previousGameweeksTotal,
+                            total_points: cumulativeTotal,
+                            captain_id: captainId,
+                            captain_multiplier: captainMultiplier
+                        });
+                        
+                        console.log(`${team.entry_name}: Previous GWs: ${previousGameweeksTotal}, Current GW: ${currentGameweekScore}, Total: ${cumulativeTotal}`);
+                        
+                    } catch (error) {
+                        console.log(`Error calculating for ${team.entry_name}: ${error.message}`);
+                        // Add team with 0 points if calculation fails
+                        teamScores.push({
+                            entry: team.entry,
+                            entry_name: team.entry_name,
+                            player_first_name: team.player_first_name,
+                            player_last_name: team.player_last_name,
+                            current_gameweek_points: 0,
+                            previous_gameweeks_total: 0,
+                            total_points: 0,
+                            captain_id: null,
+                            captain_multiplier: 1
+                        });
+                    }
+                }
+                
+                // Sort by cumulative total points and return
+                teamScores.sort((a, b) => b.total_points - a.total_points);
+                return teamScores;
+                
+            } catch (error) {
+                console.error('Error calculating live standings:', error.message);
+                throw error;
+            }
+        }
+
+        // Helper function to fetch live player data
+        async function fetchLivePlayerData() {
+            const proxies = [
+                'https://corsproxy.io/?',
+                'https://api.allorigins.win/raw?url=',
+                'https://cors-anywhere.herokuapp.com/',
+                'https://thingproxy.freeboard.io/fetch/'
+            ];
+            
+            const fplUrl = 'https://fantasy.premierleague.com/api/event/1/live/';
+            let lastError = null;
+            
+            for (const proxy of proxies) {
+                try {
+                    const fullUrl = proxy + encodeURIComponent(fplUrl);
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 10000);
+                    
+                    const response = await fetch(fullUrl, {
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' },
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    return data;
+                    
+                } catch (error) {
+                    console.log(`Proxy ${proxy} failed for live data:`, error.message);
+                    lastError = error;
+                    continue;
+                }
+            }
+            
+            throw lastError || new Error('All CORS proxies failed for live data');
+        }
+
+        // Helper function to fetch team picks
+        async function fetchTeamPicks(teamId) {
+            try {
+                // Get the current gameweek first
+                const currentGW = await getCurrentGameweek();
+                console.log(`Fetching team picks for gameweek ${currentGW}`);
+                
+                // Try direct fetch first
+                try {
+                    const directUrl = `https://fantasy.premierleague.com/api/entry/${teamId}/event/${currentGW}/picks/`;
+                    const directResponse = await fetch(directUrl);
+                    if (directResponse.ok) {
+                        const data = await directResponse.json();
+                        console.log(`Direct fetch successful for team ${teamId}:`, data);
+                        return data;
+                    }
+                } catch (directError) {
+                    console.log('Direct fetch failed, trying proxies:', directError.message);
+                }
+                
+                const proxies = [
+                    'https://corsproxy.io/?',
+                    'https://api.allorigins.win/raw?url=',
+                    'https://cors-anywhere.herokuapp.com/',
+                    'https://thingproxy.freeboard.io/fetch/'
+                ];
+                
+                const fplUrl = `https://fantasy.premierleague.com/api/entry/${teamId}/event/${currentGW}/picks/`;
+                let lastError = null;
+                
+                for (const proxy of proxies) {
+                    try {
+                        const fullUrl = proxy + encodeURIComponent(fplUrl);
+                        console.log(`Trying proxy for team picks: ${proxy}`);
+                        
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased timeout
+                        
+                        const response = await fetch(fullUrl, {
+                            method: 'GET',
+                            headers: { 'Content-Type': 'application/json' },
+                            signal: controller.signal
+                        });
+                        
+                        clearTimeout(timeoutId);
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        
+                        const data = await response.json();
+                        console.log(`Team picks data received for ${teamId} via ${proxy}:`, data);
+                        return data;
+                        
+                    } catch (error) {
+                        console.log(`Proxy ${proxy} failed for team picks:`, error.message);
+                        lastError = error;
+                        continue;
+                    }
+                }
+                
+                throw lastError || new Error('All CORS proxies failed for team picks');
+                
+            } catch (error) {
+                console.log('Error in fetchTeamPicks:', error);
+                throw error;
+            }
+        }
+
+        // Helper function to fetch team history (all gameweeks)
+        async function fetchTeamHistory(teamId) {
+            const proxies = [
+                'https://corsproxy.io/?',
+                'https://api.allorigins.win/raw?url=',
+                'https://cors-anywhere.herokuapp.com/',
+                'https://thingproxy.freeboard.io/fetch/'
+            ];
+            
+            const fplUrl = `https://fantasy.premierleague.com/api/entry/${teamId}/history/`;
+            let lastError = null;
+            
+            for (const proxy of proxies) {
+                try {
+                    const fullUrl = proxy + encodeURIComponent(fplUrl);
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 10000);
+                    
+                    const response = await fetch(fullUrl, {
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' },
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    return data;
+                    
+                } catch (error) {
+                    console.log(`Proxy ${proxy} failed for team history:`, error.message);
+                    lastError = error;
+                    continue;
+                }
+            }
+            
+            throw lastError || new Error('All CORS proxies failed for team history');
+        }
+
+        // Helper function to get current gameweek number
+        async function getCurrentGameweek() {
+            try {
+                // Fetch the current gameweek from the bootstrap-static API
+                const playerData = await fetchPlayerNames();
+                if (playerData && playerData.events) {
+                    const currentEvent = playerData.events.find(event => event.is_current);
+                    if (currentEvent) {
+                        console.log('Current gameweek:', currentEvent.id);
+                        return currentEvent.id;
+                    }
+                }
+                // Fallback to current date-based calculation
+                const now = new Date();
+                const seasonStart = new Date('2024-08-16'); // 2024/25 season starts
+                const weeksSinceStart = Math.floor((now - seasonStart) / (7 * 24 * 60 * 60 * 1000));
+                const currentGW = Math.max(1, Math.min(38, weeksSinceStart + 1));
+                console.log('Calculated current gameweek:', currentGW);
+                return currentGW;
+            } catch (error) {
+                console.log('Error getting current gameweek, defaulting to 1:', error);
+                return 1;
+            }
+        }
+
+        // Helper function to fetch player names from FPL API
+        async function fetchPlayerNames() {
+            try {
+                console.log('Fetching player names from FPL API...');
+                
+                // Try direct fetch first (might work in some environments)
+                try {
+                    const directResponse = await fetch('https://fantasy.premierleague.com/api/bootstrap-static/');
+                    if (directResponse.ok) {
+                        const data = await directResponse.json();
+                        console.log('Direct fetch successful, got player data');
+                        return data;
+                    }
+                } catch (directError) {
+                    console.log('Direct fetch failed, trying proxies:', directError.message);
+                }
+                
+                const proxies = [
+                    'https://corsproxy.io/?',
+                    'https://api.allorigins.win/raw?url=',
+                    'https://cors-anywhere.herokuapp.com/',
+                    'https://thingproxy.freeboard.io/fetch/'
+                ];
+                
+                const fplUrl = 'https://fantasy.premierleague.com/api/bootstrap-static/';
+                let lastError = null;
+                
+                for (const proxy of proxies) {
+                    try {
+                        const fullUrl = proxy + encodeURIComponent(fplUrl);
+                        console.log(`Trying proxy: ${proxy}`);
+                        
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased timeout
+                        
+                        const response = await fetch(fullUrl, {
+                            method: 'GET',
+                            headers: { 'Content-Type': 'application/json' },
+                            signal: controller.signal
+                        });
+                        
+                        clearTimeout(timeoutId);
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        
+                        const data = await response.json();
+                        console.log(`Proxy ${proxy} successful, got data:`, {
+                            elements: data.elements ? Object.keys(data.elements).length : 0,
+                            events: data.events ? data.events.length : 0
+                        });
+                        return data;
+                        
+                    } catch (error) {
+                        console.log(`Proxy ${proxy} failed:`, error.message);
+                        lastError = error;
+                        continue;
+                    }
+                }
+                
+                throw lastError || new Error('All CORS proxies failed for player names');
+                
+            } catch (error) {
+                console.log('Error fetching player names:', error);
+                return null;
+            }
+        }
+
+        // Helper function to generate unique profile image names
+        function getProfileImageName(firstName, lastName) {
+            if (!firstName || !lastName) {
+                return 'default.jpg';
+            }
+            
+            // Convert to lowercase and replace spaces with hyphens
+            const cleanFirstName = firstName.toLowerCase().trim();
+            const cleanLastName = lastName.toLowerCase().trim();
+            
+            // Create unique filename: firstname-lastname.jpg
+            return `${cleanFirstName}-${cleanLastName}.jpg`;
+        }
+
+        // Function to check if games are currently live
+        async function checkIfGamesAreLive() {
+            try {
+                // Get live player data to check if any players have points
+                const liveData = await fetchLivePlayerData();
+                
+                if (!liveData.elements) {
+                    return false;
+                }
+                
+                // Check if any players have scored points (indicating games are live)
+                const playersWithPoints = Object.values(liveData.elements).filter(player => 
+                    player.stats && player.stats.total_points > 0
+                );
+                
+                if (playersWithPoints.length > 0) {
+                    console.log(`Games are live - ${playersWithPoints.length} players have scored points`);
+                    console.log('Sample players with points:', playersWithPoints.slice(0, 3).map(p => 
+                        `Player ${p.id}: ${p.stats.total_points} pts`
+                    ));
+                    return true;
+                }
+                
+                // Also check if we're in an active gameweek (deadline has passed but not finished)
+                const gameweekData = await fetchGameweekData();
+                const currentEvent = gameweekData.events?.find(e => e.is_current);
+                
+                if (currentEvent) {
+                    const deadline = new Date(currentEvent.deadline_time);
+                    const now = new Date();
+                    const isAfterDeadline = now > deadline;
+                    const isNotFinished = !currentEvent.finished;
+                    
+                    // More lenient check: if deadline passed and not finished, consider it live
+                    // Don't rely on FPL's "data_checked" status as it's often delayed
+                    if (isAfterDeadline && isNotFinished) {
+                        console.log('Games are live - after deadline but not finished (ignoring FPL processing delay)');
+                        return true;
+                    }
+                }
+                
+                console.log('Games are not live');
+                return false;
+                
+            } catch (error) {
+                console.log('Error checking if games are live:', error.message);
+                return false; // Default to false if we can't determine
+            }
+        }
+
+        async function fetchLeagueData(leagueId) {
+            console.log('FPL League page loaded');
+            
+            try {
+                // Try multiple CORS proxies as fallbacks (ordered by reliability)
+                const proxies = [
+                    'https://corsproxy.io/?',
+                    'https://api.allorigins.win/raw?url=',
+                    'https://cors-anywhere.herokuapp.com/',
+                    'https://thingproxy.freeboard.io/fetch/'
+                ];
+                
+                const fplUrl = `https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`;
+                let lastError = null;
+                
+                for (const proxy of proxies) {
+                    try {
+                        const fullUrl = proxy + encodeURIComponent(fplUrl);
+                        console.log('Trying proxy:', proxy);
+                        console.log('Fetching from:', fullUrl);
+                        
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+                        
+                        const response = await fetch(fullUrl, {
+                            method: 'GET',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            signal: controller.signal
+                        });
+                        
+                        clearTimeout(timeoutId);
+                        
+                        console.log('Response status:', response.status);
+                        
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            console.log('Response error text:', errorText);
+                            throw new Error(`HTTP error! status: ${response.status}: ${errorText}`);
+                        }
+                        
+                        const data = await response.json();
+                        console.log('Received data:', data);
+                        
+                        // Check if the API returned an error
+                        if (data.error) {
+                            throw new Error(data.error);
+                        }
+                        
+                        return data;
+                        
+                    } catch (error) {
+                        console.log(`Proxy ${proxy} failed:`, error.message);
+                        if (error.name === 'AbortError') {
+                            console.log(`Proxy ${proxy} timed out`);
+                        }
+                        lastError = error;
+                        continue; // Try next proxy
+                    }
+                }
+                
+                // If all proxies failed, throw the last error
+                throw lastError || new Error('All CORS proxies failed. Please try again later.');
+                
+            } catch (error) {
+                console.log('Error fetching league data:', error);
+                throw error;
+            }
+        }
+
+        function displayLiveStandings(liveStandings) {
+            const leaderboardContent = document.getElementById('leaderboard-content');
+            leaderboardContent.innerHTML = '';
+
+            console.log('Displaying live standings:', liveStandings);
+
+            // Check if data is valid
+            if (!liveStandings || liveStandings.length === 0) {
+                const errorMsg = document.createElement('div');
+                errorMsg.style.cssText = 'text-align: center; padding: 20px; background: #f8d7da; border-radius: 10px; margin-bottom: 20px; color: #721c24; font-weight: bold;';
+                errorMsg.innerHTML = '❌ <strong>No live standings data available</strong><br>Please try again later.';
+                leaderboardContent.appendChild(errorMsg);
+                showLeaderboard();
+                return;
+            }
+
+            // Display header (only on desktop)
+            if (window.innerWidth > 768) {
+                const headerRow = document.createElement('div');
+                headerRow.className = 'leaderboard-header';
+                headerRow.innerHTML = `
+                    <div class="position">Pos</div>
+                    <div class="profile-picture-container"></div>
+                    <div class="player-info">Team</div>
+                    <div class="total-points" style="text-align: left;">Total Points</div>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <div class="stat-label">GW</div>
+                            <div class="stat-value">Current GW</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">CH</div>
+                            <div class="stat-value">Chips</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">TR</div>
+                            <div class="stat-value">Transfers</div>
+                        </div>
+                    </div>
+                `;
+                leaderboardContent.appendChild(headerRow);
+            }
+
+            liveStandings.forEach((team, index) => {
+                const positionClass = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : '';
+                
+                const teamName = team.entry_name || 'Unknown Team';
+                const managerName = team.player_first_name && team.player_last_name ? 
+                    `${team.player_first_name} ${team.player_last_name}` : 
+                    'Unknown Manager';
+                
+                const totalPoints = team.total_points || 0;
+                const gameweekPoints = team.current_gameweek_points || 0; // Current gameweek points
+                
+                const row = document.createElement('div');
+                row.className = `leaderboard-row ${positionClass}`;
+                row.innerHTML = `
+                    <div class="position">${index + 1}</div>
+                    <div class="profile-picture-container">
+                        <img src="images/${getProfileImageName(team.player_first_name, team.player_last_name)}" 
+                             alt="${managerName}" 
+                             class="profile-picture" 
+                             onerror="this.src='images/default.jpg'"
+                             data-original-src="images/${getProfileImageName(team.player_first_name, team.player_last_name)}"
+                             style="cursor: pointer;">
+                    </div>
+                    <div class="player-info">
+                        <div class="team-name">${teamName}</div>
+                        <div class="manager-name">${managerName}</div>
+                    </div>
+                    <div class="total-points">
+                        <div class="points-display">
+                            <span class="total-points-number">${totalPoints}</span>
+                            <span class="points-label">pts</span>
+                        </div>
+                    </div>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <div class="stat-label">GW</div>
+                            <div class="stat-value">${gameweekPoints}</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">CH</div>
+                            <div class="stat-value">-</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">TR</div>
+                            <div class="stat-value">-</div>
+                        </div>
+                    </div>
+                `;
+                
+                // Add click handler for the entire row to open profile modal
+                row.addEventListener('click', function(e) {
+                    // Don't trigger if clicking on the profile picture itself (to avoid double-triggering)
+                    if (e.target.classList.contains('profile-picture')) {
+                        return;
+                    }
+                    
+                    const profileImg = row.querySelector('.profile-picture');
+                    const originalSrc = profileImg.getAttribute('data-original-src') || profileImg.src;
+                    console.log('Row clicked, opening modal with:', { originalSrc, managerName, teamName, team });
+                    openProfileModal(originalSrc, managerName, teamName, team);
+                });
+                
+                // Add specific click handler for profile pictures
+                const profileImg = row.querySelector('.profile-picture');
+                profileImg.addEventListener('click', function(e) {
+                    e.stopPropagation(); // Prevent row click from also triggering
+                    const originalSrc = this.getAttribute('data-original-src') || this.src;
+                    console.log('Profile picture clicked, opening modal with:', { originalSrc, managerName, teamName, team });
+                    openProfileModal(originalSrc, managerName, teamName, team);
+                });
+                
+                // Add cursor pointer to indicate the row is clickable
+                row.style.cursor = 'pointer';
+                
+                leaderboardContent.appendChild(row);
+            });
+
+            // Update last updated timestamp
+            const lastUpdated = document.getElementById('lastUpdated');
+            if (lastUpdated) {
+                const now = new Date();
+                lastUpdated.innerHTML = `<strong>🔄 Live Standings</strong> - Last updated: ${now.toLocaleTimeString()}`;
+            }
+        }
+
+        function displayLeagueData(data) {
+            const leaderboardContent = document.getElementById('leaderboard-content');
+            leaderboardContent.innerHTML = '';
+
+            console.log('Displaying data:', data);
+            console.log('Data structure:', JSON.stringify(data, null, 2));
+
+            // Check if data is null or invalid
+            if (!data) {
+                const errorMsg = document.createElement('div');
+                errorMsg.style.cssText = 'text-align: center; padding: 20px; background: #f8d7da; border-radius: 10px; margin-bottom: 20px; color: #721c24; font-weight: bold;';
+                errorMsg.innerHTML = '❌ <strong>Invalid league data received</strong><br>Please check the League ID and try again.<br><br>Debug info: ' + JSON.stringify(data, null, 2);
+                leaderboardContent.appendChild(errorMsg);
+                showLeaderboard();
+                return;
+            }
+
+            // Check different possible data structures for teams
+            let results = [];
+            let isPreSeason = false;
+            
+            // First try standings (for active season)
+            if (data.standings && data.standings.results && data.standings.results.length > 0) {
+                results = data.standings.results;
+                console.log('Using standings data:', results);
+            } 
+            // If no standings, try new_entries (for pre-season)
+            else if (data.new_entries && data.new_entries.results && data.new_entries.results.length > 0) {
+                results = data.new_entries.results;
+                isPreSeason = true;
+                console.log('Using new_entries data (pre-season):', results);
+            }
+            // Fallback to other possible structures
+            else if (data.standings && data.standings.standings) {
+                results = data.standings.standings;
+                console.log('Using standings.standings data:', results);
+            } else if (Array.isArray(data.standings)) {
+                results = data.standings;
+                console.log('Using standings array data:', results);
+            }
+
+            console.log('Found results:', results);
+            console.log('Results length:', results.length);
+            console.log('Is pre-season:', isPreSeason);
+
+            // Check if there are any teams in the league
+            if (!results || results.length === 0) {
+                const noTeamsMsg = document.createElement('div');
+                noTeamsMsg.style.cssText = 'text-align: center; padding: 20px; background: #fff3cd; border-radius: 10px; margin-bottom: 20px; color: #856404; font-weight: bold;';
+                noTeamsMsg.innerHTML = '🏆 <strong>No teams found in this league</strong><br>This league might be empty or the League ID might be incorrect.<br><br>Debug info: ' + JSON.stringify(data, null, 2);
+                leaderboardContent.appendChild(noTeamsMsg);
+                showLeaderboard();
+                return;
+            }
+
+
+
+            // Display header (only on desktop)
+            if (window.innerWidth > 768) {
+                const headerRow = document.createElement('div');
+                headerRow.className = 'leaderboard-header';
+                headerRow.innerHTML = `
+                    <div class="position">Pos</div>
+                    <div class="profile-picture-container"></div>
+                    <div class="player-info">Team</div>
+                    <div class="total-points" style="text-align: left;">Points</div>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <div class="stat-label">GW</div>
+                            <div class="stat-value">Gameweek</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">CH</div>
+                            <div class="stat-value">Chips</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">TR</div>
+                            <div class="stat-value">Transfers</div>
+                        </div>
+                    </div>
+                `;
+                leaderboardContent.appendChild(headerRow);
+            }
+
+            results.forEach((player, index) => {
+                console.log('Processing player:', player);
+                const positionClass = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : '';
+                
+                // Handle different data structures
+                const teamName = player.entry_name || 'Unknown Team';
+                const managerName = player.player_first_name && player.player_last_name ? 
+                    `${player.player_first_name} ${player.player_last_name}` : 
+                    'Unknown Manager';
+                
+                const points = isPreSeason ? 0 : (player.total || 0);
+                const gameweekPoints = isPreSeason ? 0 : (player.gameweek_points || 0);
+                const chipsUsed = isPreSeason ? 0 : (player.chips_used ? player.chips_used.length : 0);
+                const transfers = isPreSeason ? 0 : (player.transfers || 0);
+                
+                // Get the profile image path using the new naming function
+                const profileImagePath = `images/${getProfileImageName(player.player_first_name, player.player_last_name)}`;
+                const defaultImagePath = 'images/default.jpg';
+                
+                const row = document.createElement('div');
+                row.className = 'leaderboard-row';
+                row.innerHTML = `
+                    <div class="position ${positionClass}">${index + 1}</div>
+                    <div class="profile-picture-container">
+                        <img src="${defaultImagePath}" 
+                             alt="${managerName}" 
+                             class="profile-picture"
+                             data-original-src="${profileImagePath}">
+                    </div>
+                    <div class="player-info">
+                        <div class="player-name">${managerName}</div>
+                        <div class="team-name">${teamName}</div>
+                    </div>
+                    <div class="total-points">${points} pts</div>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <div class="stat-label">GW</div>
+                            <div class="stat-value">${gameweekPoints}</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">CH</div>
+                            <div class="stat-value">${chipsUsed}</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">TR</div>
+                            <div class="stat-value">${transfers}</div>
+                        </div>
+                    </div>
+                `;
+                
+                // Add proper error handling for profile picture
+                const profileImg = row.querySelector('.profile-picture');
+                const originalSrc = profileImg.getAttribute('data-original-src');
+                
+                // Try to load the specific profile picture
+                const testImg = new Image();
+                testImg.onload = function() {
+                    profileImg.src = originalSrc;
+                };
+                testImg.onerror = function() {
+                    // Keep the default image, no need to change anything
+                    console.log(`Profile image not found: ${originalSrc}, using default`);
+                };
+                testImg.src = originalSrc;
+                
+                // Add click handler for the entire row to open profile modal
+                row.addEventListener('click', function() {
+                    openProfileModal(profileImg.src, managerName, teamName, player);
+                });
+                
+                // Add cursor pointer to indicate the row is clickable
+                row.style.cursor = 'pointer';
+                
+                leaderboardContent.appendChild(row);
+            });
+
+            // Add key to explain columns (moved below the leaderboard)
+            const keyDiv = document.createElement('div');
+            keyDiv.className = 'leaderboard-key';
+            keyDiv.innerHTML = `
+                <h3>📊 Column Guide</h3>
+                <div class="key-grid">
+                    <div class="key-item">
+                        <span class="key-label">GW:</span>
+                        <span class="key-description">Gameweek Points - Points scored in the current/last gameweek</span>
+                    </div>
+                    <div class="key-item">
+                        <span class="key-label">CH:</span>
+                        <span class="key-description">Chips Used - Number of special chips used (Wildcard, Free Hit, Triple Captain, Bench Boost)</span>
+                    </div>
+                    <div class="key-item">
+                        <span class="key-label">TR:</span>
+                        <span class="key-description">Transfers - Number of transfers made this season</span>
+                    </div>
+                </div>
+            `;
+            leaderboardContent.appendChild(keyDiv);
+
+            const updateMsg = isPreSeason ? 
+                'Pre-season standings - updates when season begins' : 
+                `Last updated: ${new Date().toLocaleString()}`;
+            
+            document.getElementById('lastUpdated').textContent = updateMsg;
+            showLeaderboard();
+        }
+
+        function displayGameweekInfo(data) {
+            if (!data || !data.events) {
+                console.log('No gameweek data available');
+                return;
+            }
+
+            // Find the next gameweek
+            const now = new Date();
+            const nextGameweek = data.events.find(event => {
+                const deadline = new Date(event.deadline_time);
+                return deadline > now && event.finished === false;
+            });
+
+            if (nextGameweek) {
+                const deadline = new Date(nextGameweek.deadline_time);
+                const formattedDeadline = deadline.toLocaleString('en-GB', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                // Create or update deadline display
+                let deadlineDiv = document.getElementById('gameweek-deadline');
+                if (!deadlineDiv) {
+                    deadlineDiv = document.createElement('div');
+                    deadlineDiv.id = 'gameweek-deadline';
+                    deadlineDiv.className = 'gameweek-deadline';
+                    deadlineDiv.innerHTML = `
+                        <div class="deadline-info">
+                            <span class="deadline-label">⏰ Next Deadline:</span>
+                            <span class="deadline-time">${formattedDeadline}</span>
+                            <a href="#" class="fpl-app-link" onclick="openFPLApp()">
+                                📱 Open Premier League App
+                            </a>
+                        </div>
+                    `;
+                    
+                    // Insert before the leaderboard
+                    const leaderboard = document.getElementById('leaderboard');
+                    leaderboard.insertAdjacentElement('beforebegin', deadlineDiv);
+                } else {
+                    deadlineDiv.innerHTML = `
+                        <div class="deadline-info">
+                            <span class="deadline-label">⏰ Next Deadline:</span>
+                            <span class="deadline-time">${formattedDeadline}</span>
+                            <a href="#" class="fpl-app-link" onclick="openFPLApp()">
+                                📱 Open Premier League App
+                            </a>
+                        </div>
+                    `;
+                }
+
+                nextDeadline = deadline;
+                console.log('Next deadline:', formattedDeadline);
+            }
+        }
+
+        function startAutoRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+            
+            // Refresh every 60 seconds for live data
+            const refreshIntervalMs = 60 * 1000; // 60 seconds
+            
+            refreshInterval = setInterval(async () => {
+                if (currentLeagueId) {
+                    console.log('Auto-refreshing league data...');
+                    
+                    try {
+                        // Check if games are live and update accordingly
+                        const shouldShowLive = await checkIfGamesAreLive();
+                        
+                        if (shouldShowLive) {
+                            console.log('Games are live - refreshing live standings');
+                            const liveStandings = await calculateLiveStandings(currentLeagueId);
+                            displayLiveStandings(liveStandings);
+                        } else {
+                            console.log('Games not live - refreshing regular league data');
+                            const leagueData = await fetchLeagueData(currentLeagueId);
+                            displayLeagueData(leagueData);
+                        }
+                        
+                        // Update last updated timestamp
+                        const lastUpdated = document.getElementById('lastUpdated');
+                        if (lastUpdated) {
+                            const now = new Date();
+                            const status = shouldShowLive ? '🔄 Live Standings' : '📊 League Data';
+                            lastUpdated.innerHTML = `<strong>${status}</strong> - Last updated: ${now.toLocaleTimeString()}`;
+                        }
+                    } catch (error) {
+                        console.error('Auto-refresh failed:', error);
+                    }
+                }
+            }, refreshIntervalMs);
+            
+            // Update the display message
+            const refreshDiv = document.querySelector('.auto-refresh');
+            if (refreshDiv) {
+                refreshDiv.textContent = `Auto-refreshing every 60 seconds`;
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.innerHTML = `<strong>Error:</strong> ${message}`;
+            errorDiv.style.display = 'block';
+            hideLoading();
+        }
+
+        function hideError() {
+            document.getElementById('error').style.display = 'none';
+        }
+
+        function showLeaderboard() {
+            document.getElementById('leaderboard').style.display = 'block';
+            hideLoading();
+        }
+
+        function hideLeaderboard() {
+            document.getElementById('leaderboard').style.display = 'none';
+        }
+
+        function manualRefresh() {
+            if (currentLeagueId) {
+                showLoading();
+                loadLeague();
+            }
+        }
+
+        // Function to manually refresh live standings
+        function manualRefreshLive() {
+            if (currentLeagueId) {
+                showLoading();
+                loadLiveStandings();
+            }
+        }
+
+        function openFPLApp() {
+            // Premier League app URL schemes
+            const premierLeagueAppUrl = 'premierleague://';
+            const fplAppUrl = 'fpl://';
+            const fplWebUrl = 'https://fantasy.premierleague.com/';
+            
+            // Check if we're on a mobile device
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+                // Try to open the Premier League app first
+                const appUrl = premierLeagueAppUrl;
+                
+                // Create a hidden iframe to attempt to open the app
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.src = appUrl;
+                
+                // Add to page temporarily
+                document.body.appendChild(iframe);
+                
+                // Remove after a short delay
+                setTimeout(() => {
+                    if (document.body.contains(iframe)) {
+                        document.body.removeChild(iframe);
+                    }
+                }, 1000);
+                
+                // Fallback to web version after a delay
+                setTimeout(() => {
+                    window.open(fplWebUrl, '_blank');
+                }, 500);
+            } else {
+                // On desktop, just open the web version
+                window.open(fplWebUrl, '_blank');
+            }
+            
+            return false; // Prevent default link behavior
+        }
+
+
+
+        // Enhanced FPL Team Information with detailed data
+        async function fetchDetailedTeamInfo(teamId) {
+            try {
+                // Try multiple CORS proxies as fallbacks (ordered by reliability)
+                const proxies = [
+                    'https://corsproxy.io/?',
+                    'https://api.allorigins.win/raw?url=',
+                    'https://cors-anywhere.herokuapp.com/',
+                    'https://thingproxy.freeboard.io/fetch/'
+                ];
+                
+                const fplUrl = `https://fantasy.premierleague.com/api/entry/${teamId}/event/${getCurrentGameweek()}/picks/`;
+                let lastError = null;
+                
+                for (const proxy of proxies) {
+                    try {
+                        const fullUrl = proxy + encodeURIComponent(fplUrl);
+                        console.log('Trying proxy for detailed team info:', proxy);
+                        
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 10000);
+                        
+                        const response = await fetch(fullUrl, {
+                            method: 'GET',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            signal: controller.signal
+                        });
+                        
+                        clearTimeout(timeoutId);
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        
+                        const data = await response.json();
+                        console.log('Received detailed team data:', data);
+                        return data;
+                        
+                    } catch (error) {
+                        console.log(`Proxy ${proxy} failed for detailed team data:`, error.message);
+                        lastError = error;
+                        continue;
+                    }
+                }
+                
+                throw lastError || new Error('All CORS proxies failed for detailed team data');
+                
+            } catch (error) {
+                console.log('Error fetching detailed team data:', error);
+                return null;
+            }
+        }
+
+
+
+
+
+            
+
+            
+            // Detailed team information if available
+            if (detailedData) {
+                if (detailedData.picks) {
+                    // Find captain and vice-captain
+                    const captain = detailedData.picks.find(pick => pick.is_captain);
+                    const viceCaptain = detailedData.picks.find(pick => pick.is_vice_captain);
+                    
+                    if (captain) {
+                        teamInfo.push({ label: 'Captain', value: `Player ${captain.element}` });
+                    }
+                    
+                    if (viceCaptain) {
+                        teamInfo.push({ label: 'Vice Captain', value: `Player ${viceCaptain.element}` });
+                    }
+                    
+                    // Count transfers this week
+                    if (detailedData.transfers) {
+                        teamInfo.push({ label: 'GW Transfers', value: detailedData.transfers.length });
+                    }
+                    
+                    // Chip used this week
+                    if (detailedData.chip) {
+                        teamInfo.push({ label: 'GW Chip', value: detailedData.chip });
+                    }
+                }
+            }
+            
+            if (player.chips_used && player.chips_used.length > 0) {
+                teamInfo.push({ label: 'Chips Used', value: player.chips_used.length });
+            }
+            
+            // Team value (if available)
+            if (player.entry !== undefined) {
+                teamInfo.push({ label: 'Team ID', value: player.entry });
+            }
+            
+            // League position (if available)
+            if (player.rank !== undefined) {
+                teamInfo.push({ label: 'League Rank', value: player.rank });
+            }
+            
+            // If we don't have enough real data, add some placeholder info
+            if (teamInfo.length < 4) {
+                teamInfo.push({ label: 'Team Status', value: 'Active' });
+                teamInfo.push({ label: 'Last Updated', value: 'Live' });
+            }
+            
+            return teamInfo;
+        }
+
+        async function displayFPLTeamInfo(player) {
+            const statsGrid = document.getElementById('modalStatsGrid');
+            
+            if (!statsGrid) {
+                console.error('Stats grid not found');
+                return;
+            }
+            
+            // Show loading message
+            statsGrid.innerHTML = `
+                <div class="profile-modal-stat-item">
+                    <span class="profile-modal-stat-label">Loading team...</span>
+                    <span class="profile-modal-stat-value">⚽</span>
+                </div>
+            `;
+            
+            try {
+                // Fetch team picks and player names
+                let teamPicks = null;
+                let playerNames = null;
+                
+                if (player.entry) {
+                    console.log(`Fetching team data for entry ${player.entry}...`);
+                    
+                    // Fetch team picks for current gameweek
+                    teamPicks = await fetchTeamPicks(player.entry);
+                    console.log('Team picks received:', teamPicks);
+                    
+                    // Fetch player names from bootstrap-static API
+                    playerNames = await fetchPlayerNames();
+                    console.log('Player names received:', playerNames ? `Found ${Object.keys(playerNames.elements || {}).length} players` : 'None');
+                    
+                    // If we have team picks but no player names, try to fetch player names again
+                    if (teamPicks && teamPicks.picks && (!playerNames || !playerNames.elements)) {
+                        console.log('Retrying player names fetch...');
+                        playerNames = await fetchPlayerNames();
+                        console.log('Player names retry result:', playerNames ? `Found ${Object.keys(playerNames.elements || {}).length} players` : 'None');
+                    }
+                }
+                
+                if (teamPicks && playerNames && teamPicks.picks && playerNames.elements) {
+                    console.log(`Displaying team with ${teamPicks.picks.length} players`);
+                    // Display current team players
+                    displayTeamPlayers(teamPicks.picks, playerNames.elements, statsGrid);
+                } else {
+                    console.log('Insufficient data for team display, falling back to basic info');
+                    console.log('Team picks:', teamPicks);
+                    console.log('Player names:', playerNames);
+                    
+                    // If we have team picks but no player names, show a helpful message
+                    if (teamPicks && teamPicks.picks && (!playerNames || !playerNames.elements)) {
+                        displayTeamPicksOnly(teamPicks.picks, statsGrid);
+                    } else {
+                        // Fallback to basic team info if we can't get player data
+                        displayBasicTeamInfo(player, statsGrid);
+                    }
+                }
+                
+            } catch (error) {
+                console.log('Error loading team info:', error);
+                // Fallback to basic team info
+                displayBasicTeamInfo(player, statsGrid);
+            }
+        }
+
+        // Function to display the team's current players
+        function displayTeamPlayers(picks, players, statsGrid) {
+            console.log('Displaying team players with data:', { picks, players: Object.keys(players || {}).length });
+            
+            statsGrid.innerHTML = '';
+            
+            // Add header
+            const headerItem = document.createElement('div');
+            headerItem.className = 'profile-modal-stat-item header';
+            headerItem.innerHTML = `
+                <span class="profile-modal-stat-label">Current Squad</span>
+                <span class="profile-modal-stat-value">Position</span>
+            `;
+            statsGrid.appendChild(headerItem);
+            
+            // Sort picks by position (starting XI first, then bench)
+            const sortedPicks = [...picks].sort((a, b) => {
+                // Starting XI first (position 1-11), then bench (12-15)
+                if (a.position <= 11 && b.position > 11) return -1;
+                if (a.position > 11 && b.position <= 11) return 1;
+                return a.position - b.position;
+            });
+            
+            console.log('Sorted picks:', sortedPicks);
+            
+            sortedPicks.forEach(pick => {
+                const player = players[pick.element];
+                console.log(`Pick ${pick.element}:`, pick, 'Player data:', player);
+                
+                if (player) {
+                    const playerItem = document.createElement('div');
+                    playerItem.className = 'profile-modal-stat-item';
+                    
+                    // Determine position indicator
+                    let positionIndicator = '';
+                    if (pick.position <= 11) {
+                        positionIndicator = pick.is_captain ? '👑 C' : pick.is_vice_captain ? '👑 VC' : pick.position;
+                    } else {
+                        positionIndicator = `B${pick.position - 11}`;
+                    }
+                    
+                    // Add captain/vice-captain styling
+                    if (pick.is_captain || pick.is_vice_captain) {
+                        playerItem.classList.add('captain');
+                    } else if (pick.position > 11) {
+                        playerItem.classList.add('bench');
+                    }
+                    
+                    playerItem.innerHTML = `
+                        <span class="profile-modal-stat-label">${player.first_name} ${player.second_name}</span>
+                        <span class="profile-modal-stat-value">${positionIndicator}</span>
+                    `;
+                    statsGrid.appendChild(playerItem);
+                } else {
+                    console.warn(`Player ${pick.element} not found in player data`);
+                    // Add a placeholder for missing player data
+                    const playerItem = document.createElement('div');
+                    playerItem.className = 'profile-modal-stat-item';
+                    playerItem.style.cssText = 'color: #dc3545; font-style: italic;';
+                    playerItem.innerHTML = `
+                        <span class="profile-modal-stat-label">Player ${pick.element}</span>
+                        <span class="profile-modal-stat-value">${pick.position <= 11 ? pick.position : `B${pick.position - 11}`}</span>
+                    `;
+                    statsGrid.appendChild(playerItem);
+                }
+            });
+            
+            // Add team summary at the bottom
+            const summaryItem = document.createElement('div');
+            summaryItem.className = 'profile-modal-stat-item summary';
+            summaryItem.innerHTML = `
+                <span class="profile-modal-stat-label">Total Players</span>
+                <span class="profile-modal-stat-value">${picks.length}</span>
+            `;
+            statsGrid.appendChild(summaryItem);
+        }
+
+        // Function to display error when no data is available
+        function displayBasicTeamInfo(player, statsGrid) {
+            statsGrid.innerHTML = '';
+            
+            // Add error header
+            const errorHeader = document.createElement('div');
+            errorHeader.className = 'profile-modal-stat-item';
+            errorHeader.style.cssText = 'color: #dc3545; font-weight: bold; text-align: center; border: 2px solid #dc3545; border-radius: 5px; margin-bottom: 15px; padding: 15px;';
+            errorHeader.innerHTML = `
+                <span>❌ Unable to Load Team Data</span><br>
+                <span style="font-size: 12px; font-weight: normal; margin-top: 5px; display: block;">The FPL API is not responding or data is unavailable</span>
+            `;
+            statsGrid.appendChild(errorHeader);
+            
+            // Add troubleshooting info
+            const troubleshootItem = document.createElement('div');
+            troubleshootItem.className = 'profile-modal-stat-item';
+            troubleshootItem.style.cssText = 'color: #6c757d; text-align: center; margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;';
+            troubleshootItem.innerHTML = `
+                <span style="font-weight: bold;">Troubleshooting:</span><br>
+                <span style="font-size: 11px; margin-top: 5px; display: block;">
+                    • Check your internet connection<br>
+                    • The FPL servers might be down<br>
+                    • Try refreshing the page<br>
+                    • Check browser console for errors
+                </span>
+            `;
+            statsGrid.appendChild(troubleshootItem);
+        }
+
+        // Function to display team picks when we have them but no player names
+        function displayTeamPicksOnly(picks, statsGrid) {
+            console.log('Displaying team picks without player names:', picks);
+            
+            statsGrid.innerHTML = '';
+            
+            // Add header
+            const headerItem = document.createElement('div');
+            headerItem.className = 'profile-modal-stat-item header';
+            headerItem.innerHTML = `
+                <span class="profile-modal-stat-label">Current Squad</span>
+                <span class="profile-modal-stat-value">Position</span>
+            `;
+            statsGrid.appendChild(headerItem);
+            
+            // Sort picks by position (starting XI first, then bench)
+            const sortedPicks = [...picks].sort((a, b) => {
+                if (a.position <= 11 && b.position > 11) return -1;
+                if (a.position > 11 && b.position <= 11) return 1;
+                return a.position - b.position;
+            });
+            
+            sortedPicks.forEach(pick => {
+                const playerItem = document.createElement('div');
+                playerItem.className = 'profile-modal-stat-item';
+                
+                // Determine position indicator
+                let positionIndicator = '';
+                if (pick.position <= 11) {
+                    positionIndicator = pick.is_captain ? '👑 C' : pick.is_vice_captain ? '👑 VC' : pick.position;
+                } else {
+                    positionIndicator = `B${pick.position - 11}`;
+                }
+                
+                // Add captain/vice-captain styling
+                if (pick.is_captain || pick.is_vice_captain) {
+                    playerItem.classList.add('captain');
+                } else if (pick.position > 11) {
+                    playerItem.classList.add('bench');
+                }
+                
+                playerItem.innerHTML = `
+                    <span class="profile-modal-stat-label">Player ${pick.element}</span>
+                    <span class="profile-modal-stat-value">${positionIndicator}</span>
+                `;
+                statsGrid.appendChild(playerItem);
+            });
+            
+            // Add team summary at the bottom
+            const summaryItem = document.createElement('div');
+            summaryItem.className = 'profile-modal-stat-item summary';
+            summaryItem.innerHTML = `
+                <span class="profile-modal-stat-label">Total Players</span>
+                <span class="profile-modal-stat-value">${picks.length}</span>
+            `;
+            statsGrid.appendChild(summaryItem);
+            
+            // Add note about missing player names
+            const noteItem = document.createElement('div');
+            noteItem.className = 'profile-modal-stat-item';
+            noteItem.style.cssText = 'color: #ffc107; font-style: italic; text-align: center; margin-top: 15px; border: 1px solid #ffc107; border-radius: 5px; padding: 8px;';
+            noteItem.innerHTML = `
+                <span>⚠️ Player names unavailable</span><br>
+                <span style="font-size: 11px;">Showing team structure with player IDs</span>
+            `;
+            statsGrid.appendChild(noteItem);
+        }
+
+        // Profile Modal Functions
+        function openProfileModal(imageSrc, managerName, teamName, player) {
+            console.log('Opening profile modal for:', { imageSrc, managerName, teamName, player });
+            
+            const modal = document.getElementById('profileModal');
+            const modalImage = document.getElementById('modalImage');
+            const modalName = document.getElementById('modalName');
+            const modalTeam = document.getElementById('modalTeam');
+            
+            if (!modal || !modalImage || !modalName || !modalTeam) {
+                console.error('Modal elements not found');
+                return;
+            }
+            
+            // Handle image source - if it's a relative path, make it absolute
+            let finalImageSrc = imageSrc;
+            if (imageSrc && !imageSrc.startsWith('http') && !imageSrc.startsWith('data:')) {
+                if (imageSrc.startsWith('images/')) {
+                    finalImageSrc = imageSrc; // Keep as is for relative paths
+                } else {
+                    finalImageSrc = `images/${imageSrc}`;
+                }
+            }
+            
+            modalImage.src = finalImageSrc;
+            modalImage.alt = managerName;
+            modalName.textContent = managerName;
+            modalTeam.textContent = teamName;
+            
+            // Show modal immediately
+            modal.style.display = 'block';
+            modal.classList.add('show');
+            
+            // Generate and display FPL team information (async, won't block modal)
+            if (player) {
+                displayFPLTeamInfo(player);
+            } else {
+                // If no player data, show basic info
+                const statsGrid = document.getElementById('modalStatsGrid');
+                if (statsGrid) {
+                    statsGrid.innerHTML = `
+                        <div class="profile-modal-stat-item">
+                            <span class="profile-modal-stat-label">Team Name</span>
+                            <span class="profile-modal-stat-value">${teamName}</span>
+                        </div>
+                        <div class="profile-modal-stat-item">
+                            <span class="profile-modal-stat-label">Manager</span>
+                            <span class="profile-modal-stat-value">${managerName}</span>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Remove existing event listeners to prevent duplicates
+            const existingClickHandler = modal._clickHandler;
+            if (existingClickHandler) {
+                modal.removeEventListener('click', existingClickHandler);
+            }
+            
+            // Close modal when clicking outside
+            const clickHandler = function(e) {
+                if (e.target === modal) {
+                    closeProfileModal();
+                }
+            };
+            modal.addEventListener('click', clickHandler);
+            modal._clickHandler = clickHandler; // Store reference
+            
+            // Remove existing keydown listener to prevent duplicates
+            const existingKeyHandler = document._keyHandler;
+            if (existingKeyHandler) {
+                document.removeEventListener('keydown', existingKeyHandler);
+            }
+            
+            // Close modal with Escape key
+            const keyHandler = function(e) {
+                if (e.key === 'Escape') {
+                    closeProfileModal();
+                }
+            };
+            document.addEventListener('keydown', keyHandler);
+            document._keyHandler = keyHandler; // Store reference
+        }
+
+        function closeProfileModal() {
+            const modal = document.getElementById('profileModal');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.remove('show');
+                console.log('Profile modal closed');
+            } else {
+                console.error('Modal not found when trying to close');
+            }
+        }
+
+        // Test function to verify modal is working
+        function testModal() {
+            console.log('Testing modal...');
+            openProfileModal('images/default.jpg', 'Test Manager', 'Test Team', {
+                entry: 12345
+            });
+        }
+
+        // Test function to check API data fetching
+        async function testAPIData() {
+            console.log('Testing API data fetching...');
+            
+            try {
+                // Test current gameweek
+                const currentGW = await getCurrentGameweek();
+                console.log('Current gameweek:', currentGW);
+                
+                // Test player names fetch
+                console.log('Testing player names fetch...');
+                const playerData = await fetchPlayerNames();
+                console.log('Player data sample:', playerData ? {
+                    totalPlayers: Object.keys(playerData.elements || {}).length,
+                    samplePlayer: Object.values(playerData.elements || {}).slice(0, 1)[0],
+                    events: playerData.events ? playerData.events.length : 0
+                } : 'None');
+                
+                // Test team picks for a sample team (using the first team from current data)
+                if (currentLeagueId) {
+                    const leagueData = await fetchLeagueData(currentLeagueId);
+                    if (leagueData && leagueData.new_entries && leagueData.new_entries.results.length > 0) {
+                        const firstTeam = leagueData.new_entries.results[0];
+                        console.log('Testing team picks for:', firstTeam.entry_name);
+                        
+                        const teamPicks = await fetchTeamPicks(firstTeam.entry);
+                        console.log('Team picks sample:', teamPicks);
+                        
+                        // Test the modal with real data
+                        if (teamPicks && teamPicks.picks) {
+                            console.log('Opening modal with real team data...');
+                            openProfileModal(
+                                `images/${getProfileImageName(firstTeam.player_first_name, firstTeam.player_last_name)}`,
+                                `${firstTeam.player_first_name} ${firstTeam.player_last_name}`,
+                                firstTeam.entry_name,
+                                firstTeam
+                            );
+                        }
+                    }
+                }
+                
+                // If no real data, show error
+                if (!playerData || !playerData.elements) {
+                    console.log('No real player data available - API calls failing');
+                }
+                
+            } catch (error) {
+                console.error('API test failed:', error);
+            }
+        }
+
+
+
+        // Function to test with a real team from the current league
+        async function testRealTeam() {
+            console.log('Testing with real team data...');
+            
+            if (!currentLeagueId) {
+                console.log('No league loaded yet');
+                return;
+            }
+            
+            try {
+                // Get the first team from the current league
+                const leagueData = await fetchLeagueData(currentLeagueId);
+                if (leagueData && leagueData.new_entries && leagueData.new_entries.results.length > 0) {
+                    const firstTeam = leagueData.new_entries.results[0];
+                    console.log('Testing with real team:', firstTeam.entry_name);
+                    
+                    // Open modal with real team data
+                    openProfileModal(
+                        `images/${getProfileImageName(firstTeam.player_first_name, firstTeam.player_last_name)}`,
+                        `${firstTeam.player_first_name} ${firstTeam.player_last_name}`,
+                        firstTeam.entry_name,
+                        firstTeam
+                    );
+                } else {
+                    console.log('No teams found in league');
+                }
+            } catch (error) {
+                console.error('Error testing real team:', error);
+            }
+        }
+
+        // Load a default league on page load (optional)
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM loaded, page is ready');
+            // Start header image cycling
+            startHeaderCycling();
+            // Automatically check for live standings first, then load appropriate data
+            autoLoadAppropriateData();
+        });
+
+        // Function to automatically load live standings if games are live, otherwise regular league data
+        async function autoLoadAppropriateData() {
+            console.log('Auto-detecting what data to show...');
+            
+            try {
+                // Check if games are live
+                const shouldShowLive = await checkIfGamesAreLive();
+                
+                if (shouldShowLive) {
+                    console.log('Games are live - automatically loading live standings');
+                    await loadLiveStandings();
+                } else {
+                    console.log('Games not live - automatically loading regular league data');
+                    await loadLeague();
+                }
+            } catch (error) {
+                console.error('Error in auto-load:', error);
+                // Fallback to regular league data
+                await loadLeague();
+            }
+        }
+    </script>
+</body>
+</html> 
